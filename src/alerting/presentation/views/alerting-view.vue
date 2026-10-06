@@ -84,7 +84,7 @@ async function confirmResolution() {
     </template>
   </base-screen>
 
-  <pv-dialog v-model:visible="selectedIncident" modal header="Registrar resolución" :style="{ width: 'min(92vw, 520px)' }">
+  <pv-dialog :visible="Boolean(selectedIncident)" @update:visible="value => { if (!value) selectedIncident = null }" modal header="Registrar resolución" :style="{ width: 'min(92vw, 520px)' }">
     <p class="dialog-copy">Describe la acción aplicada. Esta información formará parte del reporte de desviación de cadena de frío.</p>
     <pv-textarea v-model="resolution" rows="5" fluid placeholder="Ej.: Se reemplazó la fuente de energía y se verificó la estabilidad térmica..." />
     <template #footer>
