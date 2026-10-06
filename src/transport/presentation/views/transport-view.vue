@@ -1,16 +1,11 @@
 <script setup>
+import BaseScreen from '../../../shared/presentation/components/base-screen.vue';
 </script>
 
 <template>
-  <div class="p-4">
-    <pv-card>
-      <template #title>Bounded Context: Medical Transport Planning & Dispatching</template>
-      <template #content>
-        <p class="text-secondary">Espacio de trabajo para planificación de órdenes de traslado, despacho de ambulancias y cálculo de rutas.</p>
-      </template>
-    </pv-card>
-  </div>
+  <base-screen
+    title="Traslados"
+    bounded-context="Medical Transport Planning & Dispatching"
+    search-placeholder="Filtrar por orden, estado o destino..."
+  />
 </template>
-
-<style scoped>
-</style>

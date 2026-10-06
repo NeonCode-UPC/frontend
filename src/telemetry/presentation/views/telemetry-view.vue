@@ -1,16 +1,11 @@
 <script setup>
+import BaseScreen from '../../../shared/presentation/components/base-screen.vue';
 </script>
 
 <template>
-  <div class="p-4">
-    <pv-card>
-      <template #title>Bounded Context: Smart Container & Telemetry Monitoring</template>
-      <template #content>
-        <p class="text-secondary">Espacio de trabajo para telemetría IoT, monitoreo térmico (+2°C a +8°C), batería y sensores de peso.</p>
-      </template>
-    </pv-card>
-  </div>
+  <base-screen
+    title="SmartBox"
+    bounded-context="Smart Container & Telemetry Monitoring"
+    search-placeholder="Filtrar por serial o estado de SmartBox..."
+  />
 </template>
-
-<style scoped>
-</style>

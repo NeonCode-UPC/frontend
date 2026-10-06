@@ -4,8 +4,8 @@ import BaseScreen from '../../../shared/presentation/components/base-screen.vue'
 
 <template>
   <base-screen
-    title="Alertas"
-    bounded-context="Critical Alerting & Incident Response"
-    search-placeholder="Filtrar alertas críticas..."
+    title="Usuarios y roles"
+    bounded-context="Identity, Access & Subscriptions (IAM)"
+    search-placeholder="Filtrar por usuario o rol..."
   />
 </template>

@@ -4,8 +4,8 @@ import BaseScreen from '../../../shared/presentation/components/base-screen.vue'
 
 <template>
   <base-screen
-    title="Alertas"
+    title="Incidentes"
     bounded-context="Critical Alerting & Incident Response"
-    search-placeholder="Filtrar alertas críticas..."
+    search-placeholder="Filtrar por incidente..."
   />
 </template>
