@@ -105,8 +105,8 @@ const tripsByStatus = computed(() => {
 
 .dispatch-column {
   min-width: 0;
-  background: var(--surface-ground);
-  border: 1px solid var(--surface-border);
+  background: #f4f7f6;
+  border: 1px solid #e2e8f0;
   border-radius: 12px;
   padding: 1rem;
 }
@@ -122,11 +122,12 @@ const tripsByStatus = computed(() => {
   margin: 0;
   font-size: 1rem;
   font-weight: 700;
+  color: #10312f;
 }
 
 .dispatch-column-header span {
   font-size: 0.75rem;
-  color: var(--text-color-secondary);
+  color: #64748b;
 }
 
 .dispatch-count {
@@ -136,8 +137,8 @@ const tripsByStatus = computed(() => {
   width: 28px;
   height: 28px;
   border-radius: 50%;
-  background: var(--primary-color);
-  color: var(--primary-color-text);
+  background: #0f7a70;
+  color: #ffffff;
   font-size: 0.75rem;
   font-weight: 700;
 }
@@ -150,8 +151,8 @@ const tripsByStatus = computed(() => {
 }
 
 .dispatch-card {
-  background: var(--surface-card);
-  border: 1px solid var(--surface-border);
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
   border-radius: 10px;
   padding: 0.9rem;
 }
@@ -166,20 +167,22 @@ const tripsByStatus = computed(() => {
 
 .dispatch-card-top strong {
   font-size: 0.875rem;
+  color: #10312f;
 }
 
 .dispatch-status {
   font-size: 0.65rem;
   padding: 0.25rem 0.5rem;
   border-radius: 999px;
-  background: var(--surface-100);
+  background: #f4f7f6;
+  color: #64748b;
 }
 
 .dispatch-card-info {
   display: flex;
   flex-direction: column;
   gap: 0.35rem;
-  color: var(--text-color-secondary);
+  color: #64748b;
   font-size: 0.75rem;
 }
 
@@ -188,7 +191,7 @@ const tripsByStatus = computed(() => {
   align-items: center;
   justify-content: center;
   min-height: 100px;
-  color: var(--text-color-secondary);
+  color: #64748b;
   font-size: 0.75rem;
 }
 
