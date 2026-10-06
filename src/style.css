@@ -1,16 +1,23 @@
 :root {
-  --primary-navy: #10312F;
-  --primary-teal: #0F7A70;
-  --accent-mint: #B9DDA0;
-  --alert-coral: #E05A46;
-  --bg-light: #F4F7F6;
-  --border-color: #E2E8F0;
+  --color-brand-dark: #10312F;
+  --color-brand-teal: #0F7A70;
+  --color-brand-mint: #B9DDA0;
+  --color-alert-red: #E05A46;
+  --color-alert-amber: #E89332;
+
+  --bg-app: #F6F5EF;
+  --bg-card: #FFFFFF;
+  --border-subtle: #E8E6DF;
+
+  --text-main: #10312F;
+  --text-secondary: #5A706A;
+  --text-sidebar-category: #5A7C75;
+  --text-sidebar-item: #B8CBC6;
 
   font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   line-height: 1.5;
-  font-weight: 400;
-  color: #1e293b;
-  background-color: var(--bg-light);
+  color: var(--text-main);
+  background-color: var(--bg-app);
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
@@ -21,29 +28,16 @@
   box-sizing: border-box;
 }
 
-h1, h2, h3, h4, h5, h6 {
-  font-family: 'Bricolage Grotesque', sans-serif;
-  color: var(--primary-navy);
-  margin-top: 0;
-}
-
-html,
-body,
-#app {
-  min-height: 100%;
-  height: 100%;
-}
-
 body {
   margin: 0;
-  min-width: 320px;
+  background-color: var(--bg-app);
+  color: var(--text-main);
 }
 
-button,
-input,
-textarea,
-select {
-  font: inherit;
+h1, h2, h3, h4, h5, h6 {
+  color: var(--text-main);
+  font-weight: 700;
+  margin: 0;
 }
 
 a {
@@ -51,32 +45,24 @@ a {
   text-decoration: none;
 }
 
-img,
-svg {
-  display: block;
-  max-width: 100%;
+.text-main {
+  color: var(--text-main) !important;
 }
 
-#app {
-  width: 100%;
+.text-muted {
+  color: var(--text-secondary) !important;
 }
 
-.tnum {
-  font-variant-numeric: tabular-nums;
+.text-teal {
+  color: var(--color-brand-teal) !important;
 }
 
-.bg-medical-navy {
-  background-color: var(--primary-navy) !important;
+.bg-app {
+  background-color: var(--bg-app) !important;
 }
 
-.bg-medical-teal {
-  background-color: var(--primary-teal) !important;
-}
-
-.text-medical-teal {
-  color: var(--primary-teal) !important;
-}
-
-.text-alert-coral {
-  color: var(--alert-coral) !important;
+.screen-card {
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
 }
