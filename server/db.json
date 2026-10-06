@@ -6,5 +6,6 @@
   "transport-orders": [],
   "ambulances": [],
   "critical-incidents": [],
-  "custody-transfers": []
+  "custody-transfers": [],
+  "digital-audit-manifests": []
 }
