@@ -60,45 +60,45 @@ const menuGroups = [
   }
 ];
 
-function isPathActive(targetPath) {
-  if (targetPath === '/home') {
+function isItemActive(path) {
+  if (path === '/home') {
     return route.path === '/home' || route.path === '/';
   }
-  return route.path === targetPath;
+  return route.path === path;
 }
 </script>
 
 <template>
-  <aside class="sidebar-container flex flex-column h-screen select-none">
-    <!-- Top Pill: Panel (Dashboard) -->
+  <aside class="sidebar-container flex flex-column select-none">
+    <!-- Top Pill: Panel -->
     <div class="px-3 pt-3 pb-2">
       <router-link
         to="/home"
-        class="flex align-items-center gap-3 px-3 py-2 border-round-3xl transition-colors no-underline font-bold text-sm"
-        :class="isPathActive('/home') ? 'bg-mint-active text-dark-active' : 'text-nav-inactive hover:bg-nav-hover'"
+        class="nav-item flex align-items-center gap-2 px-3 py-2 border-round-3xl no-underline"
+        :class="isItemActive('/home') ? 'active-pill' : 'inactive-item'"
       >
-        <i class="pi pi-th-large text-base"></i>
+        <i class="pi pi-th-large text-xs"></i>
         <span>Panel</span>
       </router-link>
     </div>
 
-    <!-- Categorized Menu Navigation (Scrollable) -->
-    <nav class="flex-1 overflow-y-auto px-3 pb-4 flex flex-column gap-3 custom-scrollbar">
+    <!-- Navigation Scrollable Area -->
+    <nav class="flex-1 overflow-y-auto px-3 pb-4 flex flex-column gap-2 sidebar-scroll">
       <div v-for="group in menuGroups" :key="group.category" class="flex flex-column gap-1">
-        <!-- Section Header -->
-        <span class="text-category px-3 pt-2 font-bold uppercase tracking-wider">
+        <!-- Category Title -->
+        <span class="category-header px-3 pt-2">
           {{ group.category }}
         </span>
 
-        <!-- Section Navigation Items -->
+        <!-- Menu Item -->
         <router-link
           v-for="item in group.items"
           :key="item.to"
           :to="item.to"
-          class="flex align-items-center gap-3 px-3 py-2 border-round-3xl transition-colors no-underline text-xs font-semibold"
-          :class="isPathActive(item.to) ? 'bg-mint-active text-dark-active font-bold' : 'text-nav-inactive hover:bg-nav-hover'"
+          class="nav-item flex align-items-center gap-2 px-3 py-2 border-round-3xl no-underline"
+          :class="isItemActive(item.to) ? 'active-pill' : 'inactive-item'"
         >
-          <i :class="item.icon + ' text-sm'"></i>
+          <i :class="item.icon + ' text-xs'"></i>
           <span>{{ item.label }}</span>
         </router-link>
       </div>
@@ -108,41 +108,51 @@ function isPathActive(targetPath) {
 
 <style scoped>
 .sidebar-container {
-  width: 230px;
-  min-width: 230px;
-  background-color: #0B2822;
-  color: #c2d6d0;
+  width: 200px;
+  min-width: 200px;
+  background-color: #10312F;
+  height: calc(100vh - 58px);
 }
 
-.text-category {
-  color: #64877F;
-  font-size: 0.65rem;
-  letter-spacing: 0.05em;
+.category-header {
+  color: #5A7C75;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
-.text-nav-inactive {
-  color: #C1D4CF;
+.nav-item {
+  font-size: 0.76rem;
+  font-weight: 500;
+  transition: all 0.15s ease-in-out;
 }
 
-.hover\:bg-nav-hover:hover {
+.inactive-item {
+  color: #B8CBC6;
+}
+
+.inactive-item:hover {
   background-color: rgba(255, 255, 255, 0.07);
-  color: #ffffff;
+  color: #FFFFFF;
 }
 
-.bg-mint-active {
+.active-pill {
   background-color: #B9DDA0 !important;
+  color: #10312F !important;
+  font-weight: 700 !important;
 }
 
-.text-dark-active {
-  color: #0A2521 !important;
+.active-pill i {
+  color: #10312F !important;
 }
 
-.custom-scrollbar::-webkit-scrollbar {
-  width: 4px;
+.sidebar-scroll::-webkit-scrollbar {
+  width: 3px;
 }
 
-.custom-scrollbar::-webkit-scrollbar-thumb {
-  background-color: rgba(255, 255, 255, 0.15);
-  border-radius: 4px;
+.sidebar-scroll::-webkit-scrollbar-thumb {
+  background-color: rgba(255, 255, 255, 0.12);
+  border-radius: 3px;
 }
 </style>

@@ -28,11 +28,11 @@ import AppSidebar from './app-sidebar.vue';
 
 <style scoped>
 .layout-wrapper {
-  background-color: #F4F6F3;
+  background-color: #F6F5EF;
 }
 
 .screen-content-bg {
-  background-color: #F4F6F3;
-  min-height: calc(100vh - 56px);
+  background-color: #F6F5EF;
+  min-height: calc(100vh - 58px);
 }
 </style>
