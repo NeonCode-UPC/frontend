@@ -1,0 +1,86 @@
+{
+  "option": {
+    "home": "Panel de Control",
+    "landing": "Solución Médica",
+    "telemetry": "Contenedores IoT",
+    "transport": "Órdenes de Traslado",
+    "alerting": "Alertas Críticas",
+    "custody": "Cadena de Custodia",
+    "iam": "Planes & Acceso",
+    "about": "Acerca de"
+  },
+  "nav": {
+    "brand": "Medical SMARTBOX",
+    "network-active": "Red IoT Operativa",
+    "sign-in": "Ingresar",
+    "sign-up": "Registrar Clínica"
+  },
+  "authoring-phrase": {
+    "intro": "Diseñado con rigor clínico",
+    "use": "utilizando",
+    "author": "por el equipo de desarrollo de {brand}"
+  },
+  "home": {
+    "title": "Centro de Operaciones Medical SMARTBOX",
+    "subtitle": "Monitoreo en tiempo real de unidades de transporte, cadena de frío y trazabilidad asistencial en Lima Metropolitana.",
+    "kpi-active-boxes": "SmartBoxes Activos",
+    "kpi-fleet-on-route": "Ambulancias en Ruta",
+    "kpi-safe-temp": "Cumplimiento Térmico (+2°C a +8°C)",
+    "kpi-incidents": "Incidentes Pendientes"
+  },
+  "landing": {
+    "hero-badge": "Normativa R.M. N° 833-2015/MINSA y Directiva N° 152/MINSA",
+    "hero-title": "Custodia y Telemetría Térmica para Transporte Médico Crítico",
+    "hero-subtitle": "Monitoreo continuo en tiempo real de órganos, hemoderivados y vacunas en ambulancias y flotas asistenciales con cerrojo inteligente e IoT.",
+    "request-demo": "Solicitar Demostración Corporativa",
+    "explore-specs": "Especificaciones Técnicas",
+    "faq-title": "Preguntas Frecuentes",
+    "contact-title": "Contacto Comercial B2B"
+  },
+  "telemetry": {
+    "title": "Monitoreo de Contenedores Inteligentes (SmartBox)",
+    "subtitle": "Supervisión térmica continua, porcentaje de batería y estado electromecánico de la tapa.",
+    "serial": "N° Serie / MAC",
+    "temp": "Temperatura",
+    "battery": "Batería",
+    "lock-status": "Cerrojo",
+    "weight": "Peso Carga",
+    "last-ping": "Último Ping"
+  },
+  "transport": {
+    "title": "Planificación y Despacho de Transporte Médico",
+    "subtitle": "Gestión de órdenes clínicas, asignación de ambulancias y tiempos de isquemia fría.",
+    "order-code": "Cód. Orden",
+    "origin": "Sede Origen",
+    "destination": "Hospital Destino",
+    "payload": "Carga Biológica",
+    "status": "Estado",
+    "eta": "ETA Estimado"
+  },
+  "alerting": {
+    "title": "Gestión de Contingencias y Alertas Críticas",
+    "subtitle": "Detección inmediata de excursiones térmicas, caídas de energía vehicular de 12V y aperturas no autorizadas.",
+    "incident-id": "ID Incidente",
+    "severity": "Severidad",
+    "description": "Detalle",
+    "timestamp": "Hora de Detección",
+    "resolve": "Atender Incidente"
+  },
+  "custody": {
+    "title": "Cadena de Custodia & Trazabilidad Digital",
+    "subtitle": "Entrega de alta seguridad mediante protocolo OTP y actas de auditoría médica para MINSA / DIGEMID.",
+    "manifest-code": "Acta N°",
+    "physician": "Médico Receptor",
+    "otp-prompt": "Ingrese el código OTP de 6 dígitos entregado por el hospital",
+    "confirm-handover": "Validar y Abrir Contenedor"
+  },
+  "page-not-found": {
+    "title": "Página No Encontrada",
+    "content": "La ruta {unavailable-route} no existe o no tiene permisos suficientes.",
+    "go-home": "Volver al Panel Principal"
+  },
+  "about": {
+    "title": "Acerca de NeonCode & Medical SMARTBOX",
+    "content": "NeonCode es una iniciativa tecnológica enfocada en reducir riesgos durante traslados médicos sensibles mediante IoT, sensores de peso y trazabilidad criptográfica."
+  }
+}

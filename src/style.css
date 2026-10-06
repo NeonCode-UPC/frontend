@@ -1,0 +1,82 @@
+:root {
+  --primary-navy: #10312F;
+  --primary-teal: #0F7A70;
+  --accent-mint: #B9DDA0;
+  --alert-coral: #E05A46;
+  --bg-light: #F4F7F6;
+  --border-color: #E2E8F0;
+
+  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+  color: #1e293b;
+  background-color: var(--bg-light);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Bricolage Grotesque', sans-serif;
+  color: var(--primary-navy);
+  margin-top: 0;
+}
+
+html,
+body,
+#app {
+  min-height: 100%;
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+img,
+svg {
+  display: block;
+  max-width: 100%;
+}
+
+#app {
+  width: 100%;
+}
+
+.tnum {
+  font-variant-numeric: tabular-nums;
+}
+
+.bg-medical-navy {
+  background-color: var(--primary-navy) !important;
+}
+
+.bg-medical-teal {
+  background-color: var(--primary-teal) !important;
+}
+
+.text-medical-teal {
+  color: var(--primary-teal) !important;
+}
+
+.text-alert-coral {
+  color: var(--alert-coral) !important;
+}

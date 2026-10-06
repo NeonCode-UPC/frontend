@@ -1,0 +1,41 @@
+{
+  "name": "medical-smartbox-frontend",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Medical SMARTBOX Web Application and Landing Page for cold-chain medical transport monitoring and traceability. Domain-Driven Design (DDD) with Vue 3, Vite, Pinia, PrimeVue.",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "server": "json-server --watch server/db.json --routes server/routes.json --port 3000"
+  },
+  "keywords": [
+    "vue",
+    "vite",
+    "pinia",
+    "primevue",
+    "primeflex",
+    "primeicons",
+    "axios",
+    "json-server",
+    "domain-driven-design",
+    "medical-smartbox"
+  ],
+  "dependencies": {
+    "@primeuix/themes": "^3.0.1",
+    "axios": "^1.20.0",
+    "pinia": "^4.0.3",
+    "primeflex": "^4.0.0",
+    "primeicons": "^8.0.1",
+    "primevue": "^5.0.1",
+    "vue": "^3.5.43",
+    "vue-i18n": "^11.4.12",
+    "vue-router": "^5.3.1"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^6.0.9",
+    "json-server": "^0.17.4",
+    "vite": "^8.3.0"
+  }
+}

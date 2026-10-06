@@ -1,0 +1,86 @@
+{
+  "option": {
+    "home": "Dashboard",
+    "landing": "Medical Solution",
+    "telemetry": "IoT Containers",
+    "transport": "Transport Orders",
+    "alerting": "Critical Alerts",
+    "custody": "Chain of Custody",
+    "iam": "Plans & Access",
+    "about": "About"
+  },
+  "nav": {
+    "brand": "Medical SMARTBOX",
+    "network-active": "IoT Network Active",
+    "sign-in": "Sign In",
+    "sign-up": "Register Clinic"
+  },
+  "authoring-phrase": {
+    "intro": "Designed with clinical rigor",
+    "use": "using",
+    "author": "by the {brand} development team"
+  },
+  "home": {
+    "title": "Medical SMARTBOX Operations Center",
+    "subtitle": "Real-time monitoring of transport units, cold-chain integrity, and clinical traceability across Lima Metropolitan Area.",
+    "kpi-active-boxes": "Active SmartBoxes",
+    "kpi-fleet-on-route": "Ambulances on Route",
+    "kpi-safe-temp": "Thermal Compliance (+2°C to +8°C)",
+    "kpi-incidents": "Pending Incidents"
+  },
+  "landing": {
+    "hero-badge": "Compliance with R.M. N° 833-2015/MINSA & Directive N° 152/MINSA",
+    "hero-title": "Thermal Custody & Telemetry for Critical Medical Transport",
+    "hero-subtitle": "Continuous real-time monitoring of organs, blood products, and vaccines in ambulances with smart locking and IoT telemetry.",
+    "request-demo": "Request Corporate Demo",
+    "explore-specs": "Technical Specifications",
+    "faq-title": "Frequently Asked Questions",
+    "contact-title": "B2B Sales Contact"
+  },
+  "telemetry": {
+    "title": "Smart Container Monitoring (SmartBox)",
+    "subtitle": "Continuous thermal supervision, battery percentage, and electromechanical lid state.",
+    "serial": "Serial / MAC",
+    "temp": "Temperature",
+    "battery": "Battery",
+    "lock-status": "Lock Status",
+    "weight": "Payload Weight",
+    "last-ping": "Last Ping"
+  },
+  "transport": {
+    "title": "Medical Transport Planning & Dispatching",
+    "subtitle": "Clinical order management, ambulance assignment, and cold ischemia time monitoring.",
+    "order-code": "Order Code",
+    "origin": "Origin Center",
+    "destination": "Destination Hospital",
+    "payload": "Biological Payload",
+    "status": "Status",
+    "eta": "Estimated ETA"
+  },
+  "alerting": {
+    "title": "Contingency & Critical Alert Management",
+    "subtitle": "Immediate detection of thermal excursions, vehicle 12V disconnects, and unauthorized lid openings.",
+    "incident-id": "Incident ID",
+    "severity": "Severity",
+    "description": "Details",
+    "timestamp": "Detection Time",
+    "resolve": "Handle Incident"
+  },
+  "custody": {
+    "title": "Chain of Custody & Digital Traceability",
+    "subtitle": "High-security clinical delivery via OTP protocol and medical audit manifests for MINSA / DIGEMID.",
+    "manifest-code": "Manifest #",
+    "physician": "Receiving Physician",
+    "otp-prompt": "Enter the 6-digit OTP code provided by the receiving hospital",
+    "confirm-handover": "Validate & Unlock Container"
+  },
+  "page-not-found": {
+    "title": "Page Not Found",
+    "content": "The route {unavailable-route} does not exist or has insufficient permissions.",
+    "go-home": "Return to Dashboard"
+  },
+  "about": {
+    "title": "About NeonCode & Medical SMARTBOX",
+    "content": "NeonCode is a technology initiative dedicated to mitigating risks during sensitive medical transit through IoT, payload sensors, and cryptographic traceability."
+  }
+}
