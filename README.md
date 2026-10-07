@@ -1,161 +1,156 @@
-# Medical SMARTBOX — Frontend Web Application (`NeonCode-UPC`)
+# Medical SMARTBOX — Frontend Web Application
 
-Plataforma Web y Landing Page orientada al monitoreo en tiempo real, supervisión térmica IoT y cadena de custodia para el transporte médico asistencial de órganos, hemoderivados y vacunas en Lima Metropolitana.
+Frontend web de la plataforma **Medical SMARTBOX**, orientada al monitoreo en tiempo real, supervisión de telemetría IoT y trazabilidad de la cadena de custodia en el transporte médico asistencial. Proyecto desarrollado por el equipo **NeonCode** para el curso de **Aplicaciones Web (1ASI0730)** de la Universidad Peruana de Ciencias Aplicadas (UPC).
 
-Desarrollada bajo los principios de **Domain-Driven Design (DDD)** y **Clean Architecture** impartidos en clase, utilizando **Vue 3**, **Vite**, **Pinia** y **PrimeVue**.
-
----
-
-## 🚀 Tecnologías y Dependencias
-
-* **Framework:** [Vue 3](https://vuejs.org/) (Composition API con `<script setup>`)
-* **Empaquetador:** [Vite](https://vitejs.dev/)
-* **Librería de Componentes:** [PrimeVue](https://primevue.org/) con tema Material + [PrimeIcons](https://primefaces.org/primeicons/) + [PrimeFlex](https://primeflex.org/)
-* **Gestor de Estado Global:** [Pinia](https://pinia.vuejs.org/)
-* **Enrutamiento:** [Vue Router](https://router.vuejs.org/) (modularizado por Bounded Contexts con lazy loading)
-* **Internacionalización:** [Vue I18n](https://vue-i18n.intlify.dev/) (Español / Inglés)
-* **Cliente HTTP:** [Axios](https://axios-http.com/)
-* **Mock Backend:** [JSON Server](https://github.com/typicode/json-server) (API REST local en `/api/v1/*`)
+La aplicación está construida sobre **Vue 3** y **Vite**, implementando una arquitectura basada en **Domain-Driven Design (DDD)** con separación estricta de responsabilidades por Bounded Contexts.
 
 ---
 
-## 📁 Arquitectura del Proyecto (DDD por Bounded Contexts)
+## Tecnologías Utilizadas
 
-Cada Bounded Context está desacoplado en `src/` para que cada integrante del equipo trabaje en su respectiva carpeta sin conflictos:
+- **Vue 3**: Framework progresivo utilizando Composition API y sintaxis `<script setup>`.
+- **Vite**: Herramienta de compilación y servidor de desarrollo local.
+- **Pinia**: Manejador centralizado de estado para la capa de aplicación.
+- **Vue Router**: Enrutamiento declarativo para Single Page Applications (SPA), modularizado por contextos.
+- **PrimeVue**: Librería de componentes UI junto con PrimeIcons y PrimeFlex para estilos de diseño.
+- **Axios**: Cliente HTTP para la comunicación con servicios RESTful.
+- **Vue I18n**: Soporte de internacionalización y cambio de idioma (Español / Inglés).
+- **JSON Server**: Servidor mock local para desarrollo y pruebas de integración (`/api/v1/*`).
+
+---
+
+## Arquitectura del Proyecto
+
+El código fuente (`src/`) se encuentra estructurado bajo principios de Domain-Driven Design (DDD), desacoplando la lógica de negocio en Bounded Contexts autónomos. Cada contexto implementa un esquema de 4 capas:
 
 ```text
 src/
-├── iam/                   # Bounded Context: Identity, Access & Subscriptions (Login, Registro, Planes)
-│   ├── domain/            # Entidades puras (User, SubscriptionPlan) y comandos
-│   ├── application/       # Pinia Store (useIamStore)
-│   ├── infrastructure/    # IamApi (extiende BaseApi), assemblers
-│   └── presentation/      # Vistas (sign-in, sign-up, plans) y rutas modulares (iam-routes.js)
-│
-├── telemetry/             # Bounded Context: Smart Container & Telemetry Monitoring (IoT Core)
-│   ├── domain/            # Entidades (SmartContainer, TelemetryLog)
-│   ├── application/       # Pinia Store (useTelemetryStore)
-│   ├── infrastructure/    # TelemetryApi, container.assembler.js
-│   └── presentation/      # Vistas (container-list, telemetry-monitor) y componentes (telemetry-card)
-│
-├── transport/             # Bounded Context: Medical Transport Planning & Dispatching (Core Operativo)
-│   ├── domain/            # Entidades (TransportOrder, Ambulance)
-│   ├── application/       # Pinia Store (useTransportStore)
-│   ├── infrastructure/    # TransportApi, transport.assembler.js
-│   └── presentation/      # Vistas (order-list, ambulance-list) y rutas (transport-routes.js)
-│
-├── alerting/              # Bounded Context: Critical Alerting & Incident Response (Soporte Reactivo)
-│   ├── domain/            # Entidades (CriticalIncident)
-│   ├── application/       # Pinia Store (useAlertingStore)
-│   ├── infrastructure/    # AlertingApi, incident.assembler.js
-│   └── presentation/      # Vistas (incidents-monitor) y rutas (alerting-routes.js)
-│
-├── custody/               # Bounded Context: Chain of Custody & Traceability (Core Regulatorio)
-│   ├── domain/            # Entidades (CustodyTransfer, DigitalAuditManifest)
-│   ├── application/       # Pinia Store (useCustodyStore)
-│   ├── infrastructure/    # CustodyApi, custody.assembler.js
-│   └── presentation/      # Vistas (traceability-timeline) y rutas (custody-routes.js)
-│
-├── shared/                # Shared Kernel y Elementos Transversales
-│   ├── infrastructure/    # BaseApi (Axios centralizado), BaseEndpoint (CRUD genérico)
-│   └── presentation/      # Layout general, Header, Footer, Selector de idioma, Landing Page (US04/05/06)
-│
-├── locales/               # Diccionarios de internacionalización (es.json, en.json)
-├── router.js              # Enrutador principal que unifica todas las rutas de los contextos
-├── main.js                # Bootstrap de la aplicación y registro de componentes pv-*
-└── style.css              # Tipografía (Bricolage Grotesque, Inter) y colores institucionales
+├── <bounded-context>/
+│   ├── domain/               # Entidades de negocio, clases puras y comandos (sin dependencias de Vue ni HTTP)
+│   ├── application/          # Stores de Pinia (use<Context>Store) que orquestan los casos de uso
+│   ├── infrastructure/       # Clientes de API (Axios), Resources (DTOs) y Assemblers de mapeo
+│   └── presentation/         # Vistas (.vue), componentes reutilizables y definición de rutas
+└── shared/                   # Kernel compartido (BaseApi, BaseEndpoint, Layout y componentes transversales)
 ```
+
+### Bounded Contexts
+
+1. **IAM (`src/iam/`)**: Gestión de identidad, autenticación (sign-in, sign-up), perfiles de usuario y catálogo de planes de suscripción.
+2. **Telemetry (`src/telemetry/`)**: Monitoreo de contenedores inteligentes (*Smart Containers*) y lecturas de telemetría IoT en tiempo real (temperatura interna/externa, batería, humedad).
+3. **Transport (`src/transport/`)**: Planificación operativa de traslados médicos, órdenes de despacho y asignación de ambulancias.
+4. **Alerting (`src/alerting/`)**: Detección y gestión de incidentes críticos por fluctuaciones térmicas o anomalías en ruta.
+5. **Custody (`src/custody/`)**: Trazabilidad y cadena de custodia digital, control de entregas y actas de transferencia con verificación OTP.
+6. **Shared (`src/shared/`)**: Servicios base (`BaseApi`, `BaseEndpoint`), layout principal (header, footer, navegación), landing page institucional y utilidades comunes.
 
 ---
 
-## 🛠️ Instalación y Ejecución Local
+## Requisitos Previos
 
-### 1. Clonar el repositorio y cambiar a la rama `develop`:
+- **Node.js**: Versión 18.0.0 o superior (compatible con Vite y Vue 3).
+- **npm**: Versión 9.0.0 o superior.
+
+---
+
+## Instalación y Puesta en Marcha
+
+### 1. Clonar el repositorio y posicionarse en la rama develop
+
 ```bash
 git clone https://github.com/NeonCode-UPC/frontend.git
 cd frontend
 git checkout develop
 ```
 
-### 2. Instalar dependencias:
+### 2. Instalar dependencias
+
 ```bash
 npm install
 ```
 
-### 3. Iniciar el servidor mock (JSON Server) en una terminal:
+### 3. Iniciar el servidor mock (JSON Server)
+
+En una primera terminal, ejecute:
+
 ```bash
 npm run server
 ```
-*API Mock disponible en:* `http://localhost:3000/api/v1`
 
-### 4. Iniciar la aplicación web (Vite) en otra terminal:
+El servidor mock quedará a la escucha en `http://localhost:3000/api/v1` consumiendo los datos definidos en `server/db.json` según el archivo de rutas `server/routes.json`.
+
+### 4. Iniciar la aplicación web en modo desarrollo
+
+En una segunda terminal, ejecute:
+
 ```bash
 npm run dev
 ```
-*Aplicación disponible en:* `http://localhost:5173`
+
+La aplicación estará disponible de forma local en `http://localhost:5173`.
 
 ---
 
-## 🌿 Flujo de Trabajo del Equipo: GitFlow
+## Scripts del Proyecto
 
-> [!IMPORTANT]
-> **REGLA DE ORO:** Nadie hace commits ni push directo a `main` ni a `develop`. Todo desarrollo se realiza en una rama `feature/*` creada a partir de `develop`.
-
-### Pasos para desarrollar tu historia de usuario / vista:
-
-1. **Actualizar tu rama `develop` local:**
-   ```bash
-   git checkout develop
-   git pull origin develop
-   ```
-
-2. **Crear tu rama de trabajo:**
-   Usa el prefijo `feature/` seguido de la historia de usuario o contexto asignado:
-   ```bash
-   git checkout -b feature/US01-registro-institucion
-   # o por ejemplo:
-   # git checkout -b feature/telemetry-gauge-card
-   ```
-
-3. **Realizar tus cambios y hacer commits con Conventional Commits:**
-   ```bash
-   git add .
-   git commit -m "feat(iam): implement hospital registration form and validation"
-   ```
-
-4. **Subir tu rama a GitHub:**
-   ```bash
-   git push -u origin feature/US01-registro-institucion
-   ```
-
-5. **Abrir un Pull Request (PR):**
-   * En GitHub, abre un Pull Request desde tu rama `feature/...` hacia la rama **`develop`**.
-   * Solicita la revisión de un compañero de equipo antes del merge.
+| Comando | Descripción |
+| :--- | :--- |
+| `npm run dev` | Inicia el servidor de desarrollo Vite con Hot Module Replacement (HMR). |
+| `npm run server` | Inicia JSON Server en el puerto 3000 con soporte de rutas API REST. |
+| `npm run build` | Compila y optimiza los activos de la aplicación para producción en el directorio `dist/`. |
+| `npm run preview` | Levanta un servidor local para previsualizar la compilación de producción. |
 
 ---
 
-## 📝 Convención de Mensajes de Commit (Conventional Commits)
+## Variables de Entorno
 
-Formato: `<tipo>(<alcance>): <descripción>`
+El proyecto incluye archivos de configuración para diferentes entornos:
 
-### Tipos permitidos:
-* `feat`: Nueva funcionalidad o vista para el usuario.
-* `fix`: Corrección de un fallo o error.
-* `docs`: Modificación en documentación o README.
-* `style`: Cambios cosméticos (espacios, formato CSS) sin afectar lógica.
-* `refactor`: Reestructuración de código sin agregar funciones ni arreglar bugs.
-* `chore`: Mantenimiento de configuración, dependencias o tooling.
+- `.env.development`: Configuración para entorno de desarrollo local apuntando a `http://localhost:3000/api/v1`.
+- `.env.production`: Configuración para entorno de producción o despliegue en Vercel.
 
-### Alcances recomendados (`scopes`):
-* `iam` (Autenticación, roles, registro, planes)
-* `telemetry` (Contenedores inteligentes, lecturas IoT de sensores)
-* `transport` (Órdenes de traslado, despacho de ambulancias)
-* `alerting` (Alertas críticas, contingencias de temperatura)
-* `custody` (Cadena de custodia, verificación OTP, actas)
-* `landing` (Página pública, propuesta de valor, FAQ, contacto)
-* `shared` (Layout, navegación, estilos globales)
+Principales variables configuradas:
+- `VITE_API_URL`: URL base del backend o mock server.
+- `VITE_CONTAINERS_ENDPOINT_PATH`: Ruta del recurso de contenedores IoT.
+- `VITE_TELEMETRY_ENDPOINT_PATH`: Ruta del recurso de logs de telemetría.
+- `VITE_TRANSPORTS_ENDPOINT_PATH`: Ruta del recurso de órdenes de transporte.
+- `VITE_AMBULANCES_ENDPOINT_PATH`: Ruta del recurso de ambulancias.
+- `VITE_INCIDENTS_ENDPOINT_PATH`: Ruta del recurso de incidentes críticos.
+- `VITE_CUSTODY_ENDPOINT_PATH`: Ruta del recurso de cadena de custodia.
 
-### Ejemplos:
-* `feat(telemetry): add live temperature gauge to container monitoring`
-* `feat(transport): integrate ambulance assignment dropdown in orders view`
-* `fix(custody): correct otp input validation length`
-* `docs: add instructions for running mock api in readme`
+---
+
+## Flujo de Trabajo y Convenciones
+
+### GitFlow
+
+El equipo trabaja bajo el modelo de ramificación GitFlow:
+- `main`: Rama de producción que almacena versiones estables y liberadas.
+- `develop`: Rama central de desarrollo e integración continua.
+- `feature/<nombre>`: Ramas de trabajo creadas a partir de `develop` para la implementación de cada historia de usuario o componente. Una vez culminadas, se integran mediante Pull Request con revisión de código hacia `develop`.
+
+### Conventional Commits
+
+Los mensajes de confirmación siguen el estándar de Conventional Commits con el formato `<tipo>(<alcance>): <descripción>`:
+
+- **Tipos**: `feat`, `fix`, `docs`, `style`, `refactor`, `chore`.
+- **Alcances sugeridos**: `iam`, `telemetry`, `transport`, `alerting`, `custody`, `shared`.
+- **Ejemplos**:
+  - `feat(telemetry): add live temperature chart component`
+  - `fix(transport): correct ambulance status filter in dispatch view`
+  - `docs: update execution steps in readme`
+
+---
+
+## Información del Equipo
+
+**Equipo:** NeonCode  
+**Curso:** Aplicaciones Web (1ASI0730) — NRC 8150  
+**Docente:** Velásquez Núñez, Ángel Augusto  
+**Periodo:** 2026-2  
+
+### Integrantes
+
+- Espinoza Flores, Aaron André — u202222859
+- Gargate Paredes, Santiago — u20211b556
+- Jaramillo Mayta, Jhon Jordy — u202520310
+- Munayco Apolaya, Maria Luisa — u20231c995
+- Santos Minaya, Renzo Piero — u202114790
