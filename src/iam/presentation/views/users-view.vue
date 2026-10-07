@@ -93,14 +93,14 @@ function confirmDelete(user) {
         </div>
       </div>
 
-      <!-- Barra de Filtros y Búsqueda -->
-      <div class="flex flex-column sm:flex-row gap-2">
+      <!-- Barra de Filtros y Búsqueda con estética de píldora igual a SmartBox -->
+      <div class="flex flex-column sm:flex-row gap-3">
         <pv-icon-field class="w-full">
-          <pv-input-icon class="pi pi-search" />
+          <pv-input-icon class="pi pi-search text-muted" />
           <pv-input-text
             v-model="search"
             placeholder="Buscar usuario, correo o rol..."
-            class="w-full"
+            class="w-full search-pill-input"
           />
         </pv-icon-field>
 
@@ -109,72 +109,80 @@ function confirmDelete(user) {
           :options="roles"
           placeholder="Todos los roles"
           show-clear
-          class="w-full sm:w-20rem"
+          class="w-full sm:w-20rem select-pill"
         />
       </div>
 
-      <!-- Tabla de usuarios envuelta en content-card -->
+      <!-- Tabla de usuarios con diseño y jerarquía idéntica a SmartBox -->
       <content-card padding="p-0" class="overflow-hidden">
         <pv-data-table
           :value="filteredUsers"
           paginator
-          :rows="5"
+          :rows="10"
           :rows-per-page-options="[5, 10, 20]"
-          striped-rows
-          table-style="min-width: 60rem"
+          class="custom-users-table"
+          responsive-layout="scroll"
+          table-style="min-width: 55rem"
         >
-          <pv-column
-            field="id"
-            header="ID"
-            sortable
-          />
-
-          <pv-column
-            field="name"
-            header="Usuario"
-            sortable
-          />
-
-          <pv-column
-            field="email"
-            header="Correo"
-          />
-
-          <pv-column
-            field="role"
-            header="Rol"
-            sortable
-          />
-
-          <pv-column
-            field="institution"
-            header="Institución"
-          />
-
-          <pv-column
-            field="status"
-            header="Estado"
-          >
-            <template #body="slotProps">
-              <status-badge :status="slotProps.data.status" />
+          <!-- Columna: USUARIO (Avatar + Nombre destacado + ID) -->
+          <pv-column field="name" header="USUARIO" sortable>
+            <template #body="{ data }">
+              <div class="flex align-items-center gap-3 py-1">
+                <div class="user-avatar-badge flex align-items-center justify-content-center">
+                  {{ data.name.split(' ').map(n => n[0]).join('').substring(0, 2) }}
+                </div>
+                <div class="flex flex-column">
+                  <span class="font-bold text-main text-sm line-height-2">{{ data.name }}</span>
+                  <span class="text-xs text-muted font-mono">#{{ String(data.id).padStart(3, '0') }}</span>
+                </div>
+              </div>
             </template>
           </pv-column>
 
-          <pv-column header="Acciones">
-            <template #body="slotProps">
-              <pv-button
-                icon="pi pi-pencil"
-                text
-                rounded
-              />
+          <!-- Columna: CORREO -->
+          <pv-column field="email" header="CORREO">
+            <template #body="{ data }">
+              <span class="text-secondary text-sm">{{ data.email }}</span>
+            </template>
+          </pv-column>
 
-              <pv-button
-                icon="pi pi-trash"
-                text
-                rounded
-                severity="danger"
-                @click="confirmDelete(slotProps.data)"
-              />
+          <!-- Columna: ROL -->
+          <pv-column field="role" header="ROL" sortable>
+            <template #body="{ data }">
+              <span class="role-pill">{{ data.role }}</span>
+            </template>
+          </pv-column>
+
+          <!-- Columna: INSTITUCIÓN -->
+          <pv-column field="institution" header="INSTITUCIÓN">
+            <template #body="{ data }">
+              <span class="text-secondary text-sm font-medium">{{ data.institution }}</span>
+            </template>
+          </pv-column>
+
+          <!-- Columna: ESTADO -->
+          <pv-column field="status" header="ESTADO">
+            <template #body="{ data }">
+              <status-badge :status="data.status" />
+            </template>
+          </pv-column>
+
+          <!-- Columna: ACCIONES -->
+          <pv-column header="ACCIONES" style="width: 6.5rem">
+            <template #body="{ data }">
+              <div class="flex align-items-center gap-2">
+                <button type="button" class="action-icon-btn" title="Editar">
+                  <i class="pi pi-pencil text-xs"></i>
+                </button>
+                <button
+                  type="button"
+                  class="action-icon-btn danger"
+                  title="Eliminar"
+                  @click="confirmDelete(data)"
+                >
+                  <i class="pi pi-trash text-xs"></i>
+                </button>
+              </div>
             </template>
           </pv-column>
 
@@ -204,53 +212,114 @@ function confirmDelete(user) {
   width: 100%;
 }
 
-:deep(.p-inputtext) {
+/* Buscador y Dropdown de Píldora */
+.search-pill-input {
+  border-radius: 9999px !important;
+  padding-left: 2.5rem !important;
   background: #FFFFFF !important;
-  color: #10312F !important;
-  border-color: #E8E6DF !important;
+  border: 1px solid var(--border-subtle, #E8E6DF) !important;
+  font-size: 0.8125rem !important;
 }
 
-:deep(.p-select) {
+:deep(.select-pill) {
+  border-radius: 9999px !important;
   background: #FFFFFF !important;
-  color: #10312F !important;
-  border-color: #E8E6DF !important;
+  border: 1px solid var(--border-subtle, #E8E6DF) !important;
 }
 
-:deep(.p-datatable) {
-  background: #FFFFFF !important;
+/* Avatar de Usuario */
+.user-avatar-badge {
+  width: 34px;
+  height: 34px;
+  min-width: 34px;
+  border-radius: 50%;
+  background-color: var(--color-brand-mint-subtle, #EAF7EE);
+  color: var(--color-brand-dark, #10312F);
+  font-weight: 700;
+  font-size: 0.72rem;
+  border: 1px solid var(--color-brand-mint, #B9DDA0);
 }
 
-:deep(.p-datatable-header) {
-  background: var(--bg-card, #FFFFFF);
+/* Píldora de Rol */
+.role-pill {
+  display: inline-block;
+  padding: 0.2rem 0.6rem;
+  border-radius: 6px;
+  background-color: var(--bg-card-subtle, #F9F8F5);
+  border: 1px solid var(--border-subtle, #E8E6DF);
+  color: var(--text-main, #10312F);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+/* Botones de Acción Sutiles */
+.action-icon-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 1px solid var(--border-subtle, #E8E6DF);
+  background: #FFFFFF;
+  color: var(--text-secondary, #5A706A);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.action-icon-btn:hover {
+  background: var(--bg-card-subtle, #F9F8F5);
+  color: var(--color-brand-teal, #0F7A70);
+  border-color: var(--color-brand-teal, #0F7A70);
+}
+
+.action-icon-btn.danger:hover {
+  background: var(--color-alert-red-subtle, #FEF2F2);
+  color: var(--color-alert-red, #E05A46);
+  border-color: var(--color-alert-red, #E05A46);
+}
+
+/* Estilos de Tabla idénticos a SmartBox */
+:deep(.custom-users-table) {
+  background: #FFFFFF !important;
   border: none;
 }
 
-:deep(.p-datatable-thead > tr > th) {
-  background-color: var(--bg-card-subtle, #F9F8F5) !important;
-  color: var(--text-secondary, #5A706A) !important;
-  font-size: 0.75rem;
-  font-weight: 600;
-  border-bottom: 1px solid var(--border-subtle, #E8E6DF) !important;
-  padding: 0.85rem 1rem;
-  letter-spacing: 0.02em;
+:deep(.custom-users-table .p-datatable-header) {
+  background: #FFFFFF !important;
+  border: none;
 }
 
-:deep(.p-datatable-tbody > tr) {
-  background-color: #FFFFFF !important;
+:deep(.custom-users-table .p-datatable-thead > tr > th) {
+  background: #FFFFFF !important;
+  color: #8C9E99 !important;
+  font-size: 0.6875rem !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.06em !important;
+  text-transform: uppercase !important;
+  border-bottom: 1px solid #ECEAE1 !important;
+  padding: 0.9rem 1.1rem !important;
 }
 
-:deep(.p-datatable.p-datatable-striped .p-datatable-tbody > tr:nth-child(even)) {
-  background-color: #FCFCFA !important;
+:deep(.custom-users-table .p-datatable-tbody > tr) {
+  background: #FFFFFF !important;
+  transition: background-color 0.12s ease !important;
 }
 
-:deep(.p-datatable-tbody > tr > td) {
-  font-size: 0.8125rem;
+:deep(.custom-users-table .p-datatable-tbody > tr:hover) {
+  background: #F9FAF8 !important;
+}
+
+:deep(.custom-users-table .p-datatable-tbody > tr > td) {
+  border-bottom: 1px solid #F1EFEA !important;
+  padding: 0.85rem 1.1rem !important;
+  font-size: 0.8125rem !important;
   color: var(--text-main, #10312F) !important;
-  border-bottom: 1px solid var(--border-subtle, #E8E6DF) !important;
-  padding: 0.85rem 1rem;
 }
 
-:deep(.p-datatable-tbody > tr:hover) {
-  background-color: #F8F7F2 !important;
+:deep(.custom-users-table .p-paginator) {
+  background: #FFFFFF !important;
+  border-top: 1px solid #ECEAE1 !important;
+  padding: 0.75rem 1rem !important;
 }
 </style>
