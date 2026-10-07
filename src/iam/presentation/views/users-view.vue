@@ -204,29 +204,53 @@ function confirmDelete(user) {
   width: 100%;
 }
 
+:deep(.p-inputtext) {
+  background: #FFFFFF !important;
+  color: #10312F !important;
+  border-color: #E8E6DF !important;
+}
+
+:deep(.p-select) {
+  background: #FFFFFF !important;
+  color: #10312F !important;
+  border-color: #E8E6DF !important;
+}
+
+:deep(.p-datatable) {
+  background: #FFFFFF !important;
+}
+
 :deep(.p-datatable-header) {
   background: var(--bg-card, #FFFFFF);
   border: none;
 }
 
 :deep(.p-datatable-thead > tr > th) {
-  background-color: var(--bg-card-subtle, #F9F8F5);
-  color: var(--text-secondary, #5A706A);
+  background-color: var(--bg-card-subtle, #F9F8F5) !important;
+  color: var(--text-secondary, #5A706A) !important;
   font-size: 0.75rem;
   font-weight: 600;
-  border-bottom: 1px solid var(--border-subtle, #E8E6DF);
+  border-bottom: 1px solid var(--border-subtle, #E8E6DF) !important;
   padding: 0.85rem 1rem;
   letter-spacing: 0.02em;
 }
 
+:deep(.p-datatable-tbody > tr) {
+  background-color: #FFFFFF !important;
+}
+
+:deep(.p-datatable.p-datatable-striped .p-datatable-tbody > tr:nth-child(even)) {
+  background-color: #FCFCFA !important;
+}
+
 :deep(.p-datatable-tbody > tr > td) {
   font-size: 0.8125rem;
-  color: var(--text-main, #10312F);
-  border-bottom: 1px solid var(--border-subtle, #E8E6DF);
+  color: var(--text-main, #10312F) !important;
+  border-bottom: 1px solid var(--border-subtle, #E8E6DF) !important;
   padding: 0.85rem 1rem;
 }
 
 :deep(.p-datatable-tbody > tr:hover) {
-  background-color: #FAFAF7;
+  background-color: #F8F7F2 !important;
 }
 </style>

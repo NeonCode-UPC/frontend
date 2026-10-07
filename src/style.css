@@ -105,3 +105,169 @@ a {
   border-color: var(--border-hover);
   box-shadow: 0 4px 12px rgba(16, 49, 47, 0.08);
 }
+
+/* ============================================================
+   PrimeVue Light Mode Enforcement & Component Standardization
+   ============================================================ */
+
+/* Inputs & Search Fields */
+.p-inputtext,
+input.p-inputtext {
+  background-color: var(--bg-card, #FFFFFF) !important;
+  color: var(--text-main, #10312F) !important;
+  border: 1px solid var(--border-subtle, #E8E6DF) !important;
+  border-radius: 8px !important;
+  font-family: inherit !important;
+  font-size: 0.8125rem !important;
+  box-shadow: 0 1px 2px rgba(16, 49, 47, 0.02) !important;
+}
+
+.p-inputtext:enabled:focus,
+input.p-inputtext:enabled:focus {
+  border-color: var(--color-brand-teal, #0F7A70) !important;
+  box-shadow: 0 0 0 2px rgba(15, 122, 112, 0.12) !important;
+}
+
+.p-inputtext::placeholder {
+  color: var(--text-muted, #8C9E99) !important;
+}
+
+/* Select / Dropdown Fields */
+.p-select {
+  background-color: var(--bg-card, #FFFFFF) !important;
+  color: var(--text-main, #10312F) !important;
+  border: 1px solid var(--border-subtle, #E8E6DF) !important;
+  border-radius: 8px !important;
+  font-family: inherit !important;
+  font-size: 0.8125rem !important;
+  box-shadow: 0 1px 2px rgba(16, 49, 47, 0.02) !important;
+}
+
+.p-select:not(.p-disabled).p-focus {
+  border-color: var(--color-brand-teal, #0F7A70) !important;
+  box-shadow: 0 0 0 2px rgba(15, 122, 112, 0.12) !important;
+}
+
+.p-select-label {
+  color: var(--text-main, #10312F) !important;
+}
+
+.p-select-overlay,
+.p-select-list-container {
+  background-color: #FFFFFF !important;
+  border: 1px solid var(--border-subtle, #E8E6DF) !important;
+  box-shadow: 0 8px 24px rgba(16, 49, 47, 0.1) !important;
+  border-radius: 8px !important;
+}
+
+.p-select-option {
+  color: var(--text-main, #10312F) !important;
+  font-size: 0.8125rem !important;
+  background-color: transparent !important;
+}
+
+.p-select-option:not(.p-select-option-selected):not(.p-disabled).p-focus,
+.p-select-option:not(.p-select-option-selected):not(.p-disabled):hover {
+  background-color: var(--bg-card-subtle, #F9F8F5) !important;
+  color: var(--text-main, #10312F) !important;
+}
+
+.p-select-option.p-select-option-selected {
+  background-color: var(--color-brand-mint-subtle, #EAF7EE) !important;
+  color: var(--color-brand-dark, #10312F) !important;
+  font-weight: 600 !important;
+}
+
+/* Data Table Clean Medical Styling */
+.p-datatable {
+  background-color: var(--bg-card, #FFFFFF) !important;
+  color: var(--text-main, #10312F) !important;
+  font-family: inherit !important;
+}
+
+.p-datatable .p-datatable-header {
+  background-color: var(--bg-card, #FFFFFF) !important;
+  border: none !important;
+}
+
+.p-datatable .p-datatable-thead > tr > th {
+  background-color: var(--bg-card-subtle, #F9F8F5) !important;
+  color: var(--text-secondary, #5A706A) !important;
+  font-size: 0.75rem !important;
+  font-weight: 600 !important;
+  border-bottom: 1px solid var(--border-subtle, #E8E6DF) !important;
+  padding: 0.85rem 1rem !important;
+  letter-spacing: 0.02em !important;
+}
+
+.p-datatable .p-datatable-tbody > tr {
+  background-color: #FFFFFF !important;
+  color: var(--text-main, #10312F) !important;
+  transition: background-color 0.12s ease !important;
+}
+
+.p-datatable.p-datatable-striped .p-datatable-tbody > tr:nth-child(even) {
+  background-color: #FCFCFA !important;
+}
+
+.p-datatable .p-datatable-tbody > tr:hover {
+  background-color: #F8F7F2 !important;
+}
+
+.p-datatable .p-datatable-tbody > tr > td {
+  border-bottom: 1px solid var(--border-subtle, #E8E6DF) !important;
+  padding: 0.85rem 1rem !important;
+  font-size: 0.8125rem !important;
+  color: var(--text-main, #10312F) !important;
+}
+
+/* Paginator */
+.p-paginator {
+  background-color: var(--bg-card, #FFFFFF) !important;
+  border-top: 1px solid var(--border-subtle, #E8E6DF) !important;
+  padding: 0.6rem 1rem !important;
+  font-size: 0.8125rem !important;
+}
+
+.p-paginator .p-paginator-page,
+.p-paginator .p-paginator-first,
+.p-paginator .p-paginator-prev,
+.p-paginator .p-paginator-next,
+.p-paginator .p-paginator-last {
+  color: var(--text-secondary, #5A706A) !important;
+  border-radius: 6px !important;
+  min-width: 2rem !important;
+  height: 2rem !important;
+}
+
+.p-paginator .p-paginator-page.p-paginator-page-selected {
+  background-color: var(--color-brand-teal, #0F7A70) !important;
+  color: #FFFFFF !important;
+}
+
+/* Dialogs & Modals */
+.p-dialog {
+  background-color: #FFFFFF !important;
+  border: 1px solid var(--border-subtle, #E8E6DF) !important;
+  border-radius: 16px !important;
+  box-shadow: 0 16px 40px rgba(16, 49, 47, 0.14) !important;
+  color: var(--text-main, #10312F) !important;
+}
+
+.p-dialog-header {
+  background-color: #FFFFFF !important;
+  color: var(--text-main, #10312F) !important;
+  border-top-left-radius: 16px !important;
+  border-top-right-radius: 16px !important;
+}
+
+.p-dialog-content {
+  background-color: #FFFFFF !important;
+  color: var(--text-main, #10312F) !important;
+}
+
+.p-dialog-footer {
+  background-color: #FFFFFF !important;
+  border-bottom-left-radius: 16px !important;
+  border-bottom-right-radius: 16px !important;
+}

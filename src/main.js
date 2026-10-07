@@ -52,7 +52,16 @@ createApp(App)
     .component('status-badge',      StatusBadge)
     .component('empty-state',       EmptyState)
     .use(i18n)
-    .use(PrimeVue, { theme: { preset: Material }, ripple: true, license: primeUiLicenseKey })
+    .use(PrimeVue, {
+        theme: {
+            preset: Material,
+            options: {
+                darkModeSelector: 'none'
+            }
+        },
+        ripple: true,
+        license: primeUiLicenseKey
+    })
     .use(ConfirmationService)
     .use(DialogService)
     .use(ToastService)
