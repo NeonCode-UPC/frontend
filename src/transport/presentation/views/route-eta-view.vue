@@ -70,26 +70,13 @@ const routes = ref([
           <status-badge :status="route.status" />
         </template>
 
-        <div class="route-path">
-          <div class="route-point">
-            <span class="point-marker origin"></span>
-            <div class="point-details">
-              <span class="point-label">Origen</span>
-              <strong class="point-name">{{ route.origin }}</strong>
-            </div>
-          </div>
-
-          <div class="route-line-connector">
-            <span class="route-line"></span>
-          </div>
-
-          <div class="route-point">
-            <span class="point-marker destination"></span>
-            <div class="point-details">
-              <span class="point-label">Destino</span>
-              <strong class="point-name">{{ route.destination }}</strong>
-            </div>
-          </div>
+        <div class="my-3">
+          <app-timeline
+            :steps="[
+              { label: 'Origen', name: route.origin, type: 'origin' },
+              { label: 'Destino', name: route.destination, type: 'destination' }
+            ]"
+          />
         </div>
 
         <div class="route-footer">
@@ -140,66 +127,7 @@ const routes = ref([
   letter-spacing: -0.01em;
 }
 
-.route-path {
-  display: flex;
-  flex-direction: column;
-  margin: 1.25rem 0;
-}
 
-.route-point {
-  display: flex;
-  align-items: flex-start;
-  gap: 0.75rem;
-}
-
-.point-marker {
-  width: 10px;
-  height: 10px;
-  flex: 0 0 10px;
-  margin-top: 0.35rem;
-  border-radius: 50%;
-}
-
-.point-marker.origin {
-  background: var(--color-brand-teal, #0F7A70);
-  box-shadow: 0 0 0 3px rgba(15, 122, 112, 0.15);
-}
-
-.point-marker.destination {
-  background: var(--color-alert-red, #E05A46);
-  box-shadow: 0 0 0 3px rgba(224, 90, 70, 0.15);
-}
-
-.point-details {
-  display: flex;
-  flex-direction: column;
-  gap: 0.2rem;
-}
-
-.point-label {
-  font-size: 0.75rem;
-  color: var(--text-secondary, #5A706A);
-  font-weight: 500;
-}
-
-.point-name {
-  font-size: 0.875rem;
-  color: var(--text-main, #10312F);
-  font-weight: 600;
-}
-
-.route-line-connector {
-  padding-left: 4px;
-  margin: 2px 0;
-}
-
-.route-line {
-  display: block;
-  width: 2px;
-  height: 24px;
-  background: var(--border-subtle, #E8E6DF);
-  border-radius: 1px;
-}
 
 .route-footer {
   display: flex;

@@ -1,9 +1,11 @@
 <script setup>
 import { computed, onMounted } from 'vue';
 import BaseScreen from '../../../shared/presentation/components/base-screen.vue';
+import { useLayoutHeader } from '../../../shared/composables/use-layout-header.js';
 import { useAlertingStore } from '../../application/alerting.store.js';
 
 const store = useAlertingStore();
+const { searchQuery } = useLayoutHeader();
 
 onMounted(() => {
   if (!store.incidents.length) store.fetchIncidents();
@@ -13,7 +15,18 @@ function formatDate(value) {
   return new Intl.DateTimeFormat('es-PE', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value));
 }
 
-const sortedIncidents = computed(() => [...store.incidents].sort((a, b) => new Date(b.detectedAt) - new Date(a.detectedAt)));
+const filteredIncidents = computed(() => {
+  const query = (searchQuery.value || '').toLowerCase().trim();
+  const list = [...store.incidents].sort((a, b) => new Date(b.detectedAt) - new Date(a.detectedAt));
+  if (!query) return list;
+  return list.filter(item =>
+    item.code?.toLowerCase().includes(query) ||
+    item.type?.toLowerCase().includes(query) ||
+    item.containerId?.toLowerCase().includes(query) ||
+    item.transportOrder?.toLowerCase().includes(query) ||
+    item.resolution?.toLowerCase().includes(query)
+  );
+});
 </script>
 
 <template>
@@ -34,132 +47,81 @@ const sortedIncidents = computed(() => [...store.incidents].sort((a, b) => new D
       </router-link>
     </template>
 
-    <template #default="{ searchQuery }">
-      <div v-if="store.loading" class="history-state">
-        <i class="pi pi-spin pi-spinner mr-2"></i> Cargando historial...
-      </div>
-      <div v-else-if="store.error" class="history-state error">
-        {{ store.error }}
-      </div>
-      <empty-state
-        v-else-if="!sortedIncidents.length"
-        icon="pi pi-history"
-        title="No se encontraron incidentes"
-        message="No hay incidentes registrados en el historial técnico-sanitario."
-      />
-      <content-card v-else padding="p-0" class="overflow-hidden">
-        <div class="table-wrap">
-          <table class="incidents-table">
-            <thead>
-              <tr>
-                <th>Incidente</th>
-                <th>Tipo</th>
-                <th>SmartBox / Orden</th>
-                <th>Detección</th>
-                <th>Estado</th>
-                <th>Resolución</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr
-                v-for="incident in sortedIncidents.filter(item => !searchQuery || JSON.stringify(item).toLowerCase().includes(searchQuery.toLowerCase()))"
-                :key="incident.id"
-              >
-                <td>
-                  <strong class="text-main">{{ incident.code }}</strong>
-                  <small class="text-muted">{{ incident.severity }}</small>
-                </td>
-                <td class="type-cell">{{ incident.type.replaceAll('_', ' ') }}</td>
-                <td>
-                  <strong class="text-main">{{ incident.containerId }}</strong>
-                  <small class="text-muted">{{ incident.transportOrder }}</small>
-                </td>
-                <td class="date-cell">{{ formatDate(incident.detectedAt) }}</td>
-                <td>
-                  <status-badge :status="incident.status" />
-                </td>
-                <td class="resolution-cell">{{ incident.resolution || 'Pendiente de cierre y emisión de informe' }}</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </content-card>
-    </template>
+    <div v-if="store.error" class="history-state error mb-3">
+      {{ store.error }}
+    </div>
+
+    <content-card padding="p-0" class="overflow-hidden">
+      <app-data-table
+        :value="filteredIncidents"
+        :loading="store.loading"
+        :rows="10"
+        :rows-per-page-options="[5, 10, 20]"
+        min-width="55rem"
+        empty-title="No se encontraron incidentes"
+        empty-message="No hay incidentes registrados en el historial técnico-sanitario."
+      >
+        <!-- Columna: INCIDENTE -->
+        <pv-column field="code" header="INCIDENTE" sortable>
+          <template #body="{ data }">
+            <div class="flex flex-column">
+              <strong class="text-main font-semibold text-sm">{{ data.code }}</strong>
+              <small class="text-muted text-xs capitalize">{{ data.severity }}</small>
+            </div>
+          </template>
+        </pv-column>
+
+        <!-- Columna: TIPO -->
+        <pv-column field="type" header="TIPO" sortable>
+          <template #body="{ data }">
+            <span class="text-main font-medium text-sm capitalize">
+              {{ data.type.replaceAll('_', ' ') }}
+            </span>
+          </template>
+        </pv-column>
+
+        <!-- Columna: SMARTBOX / ORDEN -->
+        <pv-column field="containerId" header="SMARTBOX / ORDEN" sortable>
+          <template #body="{ data }">
+            <div class="flex flex-column">
+              <strong class="text-main font-semibold text-sm">{{ data.containerId }}</strong>
+              <small class="text-muted text-xs">{{ data.transportOrder }}</small>
+            </div>
+          </template>
+        </pv-column>
+
+        <!-- Columna: DETECCIÓN -->
+        <pv-column field="detectedAt" header="DETECCIÓN" sortable>
+          <template #body="{ data }">
+            <span class="text-secondary text-sm white-space-nowrap">
+              {{ formatDate(data.detectedAt) }}
+            </span>
+          </template>
+        </pv-column>
+
+        <!-- Columna: ESTADO -->
+        <pv-column field="status" header="ESTADO" sortable>
+          <template #body="{ data }">
+            <status-badge :status="data.status" />
+          </template>
+        </pv-column>
+
+        <!-- Columna: RESOLUCIÓN -->
+        <pv-column field="resolution" header="RESOLUCIÓN">
+          <template #body="{ data }">
+            <span class="text-secondary text-xs line-height-3 block" style="max-width: 320px">
+              {{ data.resolution || 'Pendiente de cierre y emisión de informe' }}
+            </span>
+          </template>
+        </pv-column>
+      </app-data-table>
+    </content-card>
   </base-screen>
 </template>
 
 <style scoped>
-.table-wrap {
-  overflow-x: auto;
-  width: 100%;
-}
-
-.incidents-table {
-  width: 100%;
-  min-width: 850px;
-  border-collapse: collapse;
-  font-size: 0.8125rem;
-  text-align: left;
-}
-
-.incidents-table th {
-  padding: 0.85rem 1rem;
-  background-color: var(--bg-card-subtle, #F9F8F5);
-  color: var(--text-secondary, #5A706A);
-  font-size: 0.75rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  border-bottom: 1px solid var(--border-subtle, #E8E6DF);
-  white-space: nowrap;
-}
-
-.incidents-table td {
-  padding: 0.85rem 1rem;
-  border-bottom: 1px solid var(--border-subtle, #E8E6DF);
-  color: var(--text-secondary, #5A706A);
-  vertical-align: middle;
-}
-
-.incidents-table tbody tr:last-child td {
-  border-bottom: none;
-}
-
-.incidents-table tbody tr:hover {
-  background-color: var(--bg-card-subtle, #F9F8F5);
-}
-
-.incidents-table td strong {
-  display: block;
-  font-weight: 600;
-  color: var(--text-main, #10312F);
-}
-
-.incidents-table td small {
-  display: block;
-  font-size: 0.75rem;
-  margin-top: 0.15rem;
-  color: var(--text-secondary, #5A706A);
-  text-transform: capitalize;
-}
-
-.type-cell {
-  text-transform: capitalize;
-  font-weight: 500;
-  color: var(--text-main, #10312F);
-}
-
-.date-cell {
-  white-space: nowrap;
-}
-
-.resolution-cell {
-  max-width: 320px;
-  line-height: 1.4;
-}
-
 .history-state {
-  padding: 3rem 2rem;
+  padding: 1.5rem;
   text-align: center;
   color: var(--text-secondary, #5A706A);
   background-color: var(--bg-card, #FFFFFF);

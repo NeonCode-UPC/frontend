@@ -176,63 +176,26 @@ function getStatusLabel(container) {
 
       <!-- Filter Tabs & View Switcher Bar -->
       <div class="toolbar-panel flex flex-column sm:flex-row sm:align-items-center justify-content-between gap-3">
-        <!-- Status Filter Pills -->
-        <div class="filter-pills flex flex-wrap align-items-center gap-1">
-          <button
-            type="button"
-            class="filter-btn text-xs font-semibold px-3 py-1 border-round-pill border-none cursor-pointer"
-            :class="{ 'filter-btn-active': activeFilter === 'all' }"
-            @click="activeFilter = 'all'"
-          >
-            Todos ({{ totalCount }})
-          </button>
-          <button
-            type="button"
-            class="filter-btn text-xs font-semibold px-3 py-1 border-round-pill border-none cursor-pointer"
-            :class="{ 'filter-btn-active': activeFilter === 'online' }"
-            @click="activeFilter = 'online'"
-          >
-            En línea ({{ onlineCount }})
-          </button>
-          <button
-            type="button"
-            class="filter-btn text-xs font-semibold px-3 py-1 border-round-pill border-none cursor-pointer"
-            :class="{ 'filter-btn-active': activeFilter === 'offline' }"
-            @click="activeFilter = 'offline'"
-          >
-            Sin conexión ({{ offlineCount }})
-          </button>
-          <button
-            type="button"
-            class="filter-btn text-xs font-semibold px-3 py-1 border-round-pill border-none cursor-pointer"
-            :class="{ 'filter-btn-active': activeFilter === 'en-route' }"
-            @click="activeFilter = 'en-route'"
-          >
-            En ruta ({{ enRouteCount }})
-          </button>
-        </div>
+        <!-- Status Filter Pills con pill-tabs -->
+        <pill-tabs
+          v-model="activeFilter"
+          :options="[
+            { label: `Todos (${totalCount})`, value: 'all' },
+            { label: `En línea (${onlineCount})`, value: 'online' },
+            { label: `Sin conexión (${offlineCount})`, value: 'offline' },
+            { label: `En ruta (${enRouteCount})`, value: 'en-route' }
+          ]"
+        />
 
-        <!-- View Switcher (Table vs Grid) -->
-        <div class="view-switcher flex align-items-center gap-1 bg-switcher p-1 border-round-pill">
-          <button
-            type="button"
-            class="switch-btn border-none border-round-pill cursor-pointer p-1 px-2"
-            :class="{ 'switch-active': displayFormat === 'table' }"
-            title="Vista de Tabla"
-            @click="displayFormat = 'table'"
-          >
-            <i class="pi pi-bars text-xs"></i>
-          </button>
-          <button
-            type="button"
-            class="switch-btn border-none border-round-pill cursor-pointer p-1 px-2"
-            :class="{ 'switch-active': displayFormat === 'grid' }"
-            title="Vista de Cuadrícula"
-            @click="displayFormat = 'grid'"
-          >
-            <i class="pi pi-th-large text-xs"></i>
-          </button>
-        </div>
+        <!-- View Switcher (Table vs Grid) con pill-tabs segmented -->
+        <pill-tabs
+          v-model="displayFormat"
+          variant="segmented"
+          :options="[
+            { icon: 'pi pi-bars', value: 'table', label: '' },
+            { icon: 'pi pi-th-large', value: 'grid', label: '' }
+          ]"
+        />
       </div>
 
       <!-- Loading / Empty states -->
@@ -287,19 +250,7 @@ function getStatusLabel(container) {
 
                 <!-- BATERÍA (Battery Gauge) -->
                 <td class="td-cell">
-                  <div class="battery-capsule flex align-items-center gap-2">
-                    <div class="battery-indicator">
-                      <div
-                        class="battery-level"
-                        :class="{
-                          'bat-ok': c.batteryLevel > 30,
-                          'bat-warn': c.batteryLevel <= 30 && c.batteryLevel > 15,
-                          'bat-crit': c.batteryLevel <= 15
-                        }"
-                        :style="{ width: `${Math.min(100, Math.max(8, c.batteryLevel))}%` }"
-                      ></div>
-                    </div>
-                  </div>
+                  <battery-gauge :level="c.batteryLevel" variant="capsule" />
                 </td>
 
                 <!-- CONECTIVIDAD -->

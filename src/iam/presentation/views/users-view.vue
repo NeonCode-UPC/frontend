@@ -93,44 +93,37 @@ function confirmDelete(user) {
         </div>
       </div>
 
-      <!-- Barra de Filtros y Búsqueda con estética de píldora igual a SmartBox -->
-      <div class="flex flex-column sm:flex-row gap-3">
-        <pv-icon-field class="w-full">
-          <pv-input-icon class="pi pi-search text-muted" />
-          <pv-input-text
-            v-model="search"
-            placeholder="Buscar usuario, correo o rol..."
-            class="w-full search-pill-input"
+      <!-- Barra de Filtros y Búsqueda con filter-bar en píldora -->
+      <filter-bar
+        v-model="search"
+        placeholder="Buscar usuario, correo o rol..."
+      >
+        <template #filters>
+          <pv-select
+            v-model="selectedRole"
+            :options="roles"
+            placeholder="Todos los roles"
+            show-clear
+            class="w-full sm:w-16rem select-pill"
           />
-        </pv-icon-field>
+        </template>
+      </filter-bar>
 
-        <pv-select
-          v-model="selectedRole"
-          :options="roles"
-          placeholder="Todos los roles"
-          show-clear
-          class="w-full sm:w-20rem select-pill"
-        />
-      </div>
-
-      <!-- Tabla de usuarios con diseño y jerarquía idéntica a SmartBox -->
+      <!-- Tabla de usuarios con app-data-table médica -->
       <content-card padding="p-0" class="overflow-hidden">
-        <pv-data-table
+        <app-data-table
           :value="filteredUsers"
-          paginator
           :rows="10"
           :rows-per-page-options="[5, 10, 20]"
-          class="custom-users-table"
-          responsive-layout="scroll"
-          table-style="min-width: 55rem"
+          min-width="55rem"
+          empty-title="No se encontraron usuarios"
+          empty-message="Intenta con otro término de búsqueda o rol."
         >
           <!-- Columna: USUARIO (Avatar + Nombre destacado + ID) -->
           <pv-column field="name" header="USUARIO" sortable>
             <template #body="{ data }">
               <div class="flex align-items-center gap-3 py-1">
-                <div class="user-avatar-badge flex align-items-center justify-content-center">
-                  {{ data.name.split(' ').map(n => n[0]).join('').substring(0, 2) }}
-                </div>
+                <user-avatar :name="data.name" size="md" />
                 <div class="flex flex-column">
                   <span class="font-bold text-main text-sm line-height-2">{{ data.name }}</span>
                   <span class="text-xs text-muted font-mono">#{{ String(data.id).padStart(3, '0') }}</span>
@@ -185,14 +178,7 @@ function confirmDelete(user) {
               </div>
             </template>
           </pv-column>
-
-          <template #empty>
-            <empty-state
-              title="No se encontraron usuarios"
-              message="Intenta con otro término de búsqueda o rol."
-            />
-          </template>
-        </pv-data-table>
+        </app-data-table>
       </content-card>
 
       <div
@@ -212,32 +198,10 @@ function confirmDelete(user) {
   width: 100%;
 }
 
-/* Buscador y Dropdown de Píldora */
-.search-pill-input {
-  border-radius: 9999px !important;
-  padding-left: 2.5rem !important;
-  background: #FFFFFF !important;
-  border: 1px solid var(--border-subtle, #E8E6DF) !important;
-  font-size: 0.8125rem !important;
-}
-
 :deep(.select-pill) {
   border-radius: 9999px !important;
   background: #FFFFFF !important;
   border: 1px solid var(--border-subtle, #E8E6DF) !important;
-}
-
-/* Avatar de Usuario */
-.user-avatar-badge {
-  width: 34px;
-  height: 34px;
-  min-width: 34px;
-  border-radius: 50%;
-  background-color: var(--color-brand-mint-subtle, #EAF7EE);
-  color: var(--color-brand-dark, #10312F);
-  font-weight: 700;
-  font-size: 0.72rem;
-  border: 1px solid var(--color-brand-mint, #B9DDA0);
 }
 
 /* Píldora de Rol */
@@ -277,49 +241,5 @@ function confirmDelete(user) {
   background: var(--color-alert-red-subtle, #FEF2F2);
   color: var(--color-alert-red, #E05A46);
   border-color: var(--color-alert-red, #E05A46);
-}
-
-/* Estilos de Tabla idénticos a SmartBox */
-:deep(.custom-users-table) {
-  background: #FFFFFF !important;
-  border: none;
-}
-
-:deep(.custom-users-table .p-datatable-header) {
-  background: #FFFFFF !important;
-  border: none;
-}
-
-:deep(.custom-users-table .p-datatable-thead > tr > th) {
-  background: #FFFFFF !important;
-  color: #8C9E99 !important;
-  font-size: 0.6875rem !important;
-  font-weight: 700 !important;
-  letter-spacing: 0.06em !important;
-  text-transform: uppercase !important;
-  border-bottom: 1px solid #ECEAE1 !important;
-  padding: 0.9rem 1.1rem !important;
-}
-
-:deep(.custom-users-table .p-datatable-tbody > tr) {
-  background: #FFFFFF !important;
-  transition: background-color 0.12s ease !important;
-}
-
-:deep(.custom-users-table .p-datatable-tbody > tr:hover) {
-  background: #F9FAF8 !important;
-}
-
-:deep(.custom-users-table .p-datatable-tbody > tr > td) {
-  border-bottom: 1px solid #F1EFEA !important;
-  padding: 0.85rem 1.1rem !important;
-  font-size: 0.8125rem !important;
-  color: var(--text-main, #10312F) !important;
-}
-
-:deep(.custom-users-table .p-paginator) {
-  background: #FFFFFF !important;
-  border-top: 1px solid #ECEAE1 !important;
-  padding: 0.75rem 1rem !important;
 }
 </style>

@@ -101,19 +101,11 @@ function formatBattery(value) {
       </div>
 
       <!-- Time Window Selectors (6 h · 12 h · 24 h) -->
-      <div class="time-window-selector flex align-items-center gap-2">
-        <button
-          v-for="win in timeWindows"
-          :key="win.value"
-          type="button"
-          class="time-pill"
-          :class="{ active: selectedWindow === win.value }"
-          @click="selectedWindow = win.value"
-        >
-          <span class="pill-dot"></span>
-          <span>{{ win.label }}</span>
-        </button>
-      </div>
+      <pill-tabs
+        v-model="selectedWindow"
+        :options="timeWindows"
+        size="sm"
+      />
     </div>
 
     <!-- Continuous Temperature Chart Card (MBA-53) -->
@@ -133,12 +125,11 @@ function formatBattery(value) {
     </div>
 
     <!-- Telemetric History Data Table Card (MBA-53) -->
-    <div class="table-card screen-card border-round-2xl p-2 md:p-3 overflow-hidden">
-      <pv-data-table
+    <div class="table-card screen-card border-round-2xl p-0 overflow-hidden">
+      <app-data-table
         :value="filteredLogs"
-        class="custom-history-table"
-        responsive-layout="scroll"
-        data-key="id"
+        :paginator="false"
+        min-width="35rem"
       >
         <!-- Columna: HORA -->
         <pv-column field="time" header="HORA">
@@ -164,23 +155,23 @@ function formatBattery(value) {
         <!-- Columna: BATERÍA -->
         <pv-column field="batteryLevel" header="BATERÍA">
           <template #body="{ data }">
-            <span class="table-cell-regular">{{ formatBattery(data.batteryLevel) }}</span>
+            <div class="flex align-items-center gap-2">
+              <battery-gauge :level="data.batteryLevel" variant="capsule" />
+              <span class="text-xs font-semibold text-main">{{ formatBattery(data.batteryLevel) }}</span>
+            </div>
           </template>
         </pv-column>
 
         <!-- Columna: TAPA -->
         <pv-column field="lidStatus" header="TAPA">
           <template #body="{ data }">
-            <span
-              class="lid-status-pill"
-              :class="data.lidStatus === 'closed' ? 'lid-closed' : 'lid-open'"
-            >
-              <span class="dot"></span>
-              {{ data.lidStatus === 'closed' ? 'Cerrada' : 'Abierta' }}
-            </span>
+            <status-badge
+              :status="data.lidStatus === 'closed' ? 'success' : 'warning'"
+              :label="data.lidStatus === 'closed' ? 'Cerrada' : 'Abierta'"
+            />
           </template>
         </pv-column>
-      </pv-data-table>
+      </app-data-table>
     </div>
   </div>
 </template>

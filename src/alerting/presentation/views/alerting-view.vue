@@ -117,14 +117,24 @@ async function confirmResolution() {
     </template>
   </base-screen>
 
-  <pv-dialog :visible="Boolean(selectedIncident)" @update:visible="value => { if (!value) selectedIncident = null }" modal header="Registrar resolución" :style="{ width: 'min(92vw, 520px)' }">
-    <p class="dialog-copy">Describe la acción aplicada. Esta información formará parte del reporte de desviación de cadena de frío.</p>
-    <pv-textarea v-model="resolution" rows="5" fluid placeholder="Ej.: Se reemplazó la fuente de energía y se verificó la estabilidad térmica..." />
-    <template #footer>
-      <pv-button label="Cancelar" severity="secondary" text @click="selectedIncident = null" />
-      <pv-button label="Cerrar incidente" :loading="resolving" :disabled="!resolution.trim()" @click="confirmResolution" />
-    </template>
-  </pv-dialog>
+  <action-dialog
+    :visible="Boolean(selectedIncident)"
+    title="Registrar resolución"
+    subtitle="Describe la acción aplicada. Esta información formará parte del reporte de desviación de cadena de frío."
+    confirm-label="Cerrar incidente"
+    :loading="resolving"
+    :confirm-disabled="!resolution.trim()"
+    @update:visible="value => { if (!value) selectedIncident = null }"
+    @confirm="confirmResolution"
+    @cancel="selectedIncident = null"
+  >
+    <pv-textarea
+      v-model="resolution"
+      rows="5"
+      fluid
+      placeholder="Ej.: Se reemplazó la fuente de energía y se verificó la estabilidad térmica..."
+    />
+  </action-dialog>
 </template>
 
 <style scoped>

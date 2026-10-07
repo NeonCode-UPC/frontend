@@ -42,6 +42,13 @@ import KpiCard from './shared/presentation/components/kpi-card.vue';
 import ContentCard from './shared/presentation/components/content-card.vue';
 import StatusBadge from './shared/presentation/components/status-badge.vue';
 import EmptyState from './shared/presentation/components/empty-state.vue';
+import AppDataTable from './shared/presentation/components/app-data-table.vue';
+import FilterBar from './shared/presentation/components/filter-bar.vue';
+import PillTabs from './shared/presentation/components/pill-tabs.vue';
+import AppTimeline from './shared/presentation/components/app-timeline.vue';
+import ActionDialog from './shared/presentation/components/action-dialog.vue';
+import BatteryGauge from './shared/presentation/components/battery-gauge.vue';
+import UserAvatar from './shared/presentation/components/user-avatar.vue';
 
 const primeUiLicenseKey = import.meta.env.VITE_PRIME_UI_LICENSE_KEY;
 
@@ -51,6 +58,13 @@ createApp(App)
     .component('content-card',      ContentCard)
     .component('status-badge',      StatusBadge)
     .component('empty-state',       EmptyState)
+    .component('app-data-table',    AppDataTable)
+    .component('filter-bar',        FilterBar)
+    .component('pill-tabs',         PillTabs)
+    .component('app-timeline',      AppTimeline)
+    .component('action-dialog',     ActionDialog)
+    .component('battery-gauge',     BatteryGauge)
+    .component('user-avatar',       UserAvatar)
     .use(i18n)
     .use(PrimeVue, {
         theme: {

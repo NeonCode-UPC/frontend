@@ -40,46 +40,44 @@ const receivedTime = (transfer) => transfer.receivedAt?.split('·')[1]?.trim() |
       </p>
 
       <content-card padding="p-0" class="overflow-hidden">
-        <div v-if="store.loading" class="p-5 text-center text-muted text-sm">
-          <i class="pi pi-spin pi-spinner mr-2"></i>Cargando traslados…
-        </div>
-        <empty-state
-          v-else-if="!filteredTransfers.length"
-          icon="pi pi-search"
-          title="No hay traslados que coincidan con la búsqueda"
-          message="Intenta con otro código de seguimiento o filtro."
-        />
-        <div v-else class="table-scroll">
-          <table class="custody-table">
-            <thead>
-              <tr>
-                <th>Traslado</th>
-                <th>Salida</th>
-                <th>Recepción</th>
-                <th>Responsable</th>
-                <th>Estado</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr
-                v-for="transfer in filteredTransfers"
-                :key="transfer.id"
-                :class="{ selected: selectedId === transfer.id }"
-                tabindex="0"
-                @click="openTransfer(transfer.id)"
-                @keydown.enter="openTransfer(transfer.id)"
-              >
-                <td data-label="Traslado"><strong>{{ transfer.id }}</strong></td>
-                <td data-label="Salida">{{ transfer.departureAt.split('·')[1]?.trim() }}</td>
-                <td data-label="Recepción">{{ receivedTime(transfer) }}</td>
-                <td data-label="Responsable">{{ transfer.recipient || '—' }}</td>
-                <td data-label="Estado">
-                  <status-badge :status="transfer.status" :label="statusLabel(transfer.status)" />
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+        <app-data-table
+          :value="filteredTransfers"
+          :loading="store.loading"
+          min-width="45rem"
+          empty-title="No hay traslados que coincidan con la búsqueda"
+          empty-message="Intenta con otro código de seguimiento o filtro."
+          @row-click="event => openTransfer(event.data.id)"
+        >
+          <pv-column field="id" header="TRASLADO" sortable>
+            <template #body="{ data }">
+              <strong class="text-main cursor-pointer">{{ data.id }}</strong>
+            </template>
+          </pv-column>
+
+          <pv-column field="departureAt" header="SALIDA">
+            <template #body="{ data }">
+              <span class="text-secondary text-sm">{{ data.departureAt?.split('·')[1]?.trim() }}</span>
+            </template>
+          </pv-column>
+
+          <pv-column field="receivedAt" header="RECEPCIÓN">
+            <template #body="{ data }">
+              <span class="text-secondary text-sm">{{ receivedTime(data) }}</span>
+            </template>
+          </pv-column>
+
+          <pv-column field="recipient" header="RESPONSABLE">
+            <template #body="{ data }">
+              <span class="text-secondary text-sm">{{ data.recipient || '—' }}</span>
+            </template>
+          </pv-column>
+
+          <pv-column field="status" header="ESTADO" sortable>
+            <template #body="{ data }">
+              <status-badge :status="data.status" :label="statusLabel(data.status)" />
+            </template>
+          </pv-column>
+        </app-data-table>
       </content-card>
 
       <content-card
@@ -101,20 +99,14 @@ const receivedTime = (transfer) => transfer.receivedAt?.split('·')[1]?.trim() |
           <status-badge :status="selectedTransfer.status" :label="statusLabel(selectedTransfer.status)" />
         </template>
 
-        <ol class="timeline">
-          <li
-            v-for="event in selectedTransfer.events"
-            :key="`${event.date}-${event.time}`"
-            :class="event.type"
-          >
-            <span class="timeline-dot"></span>
-            <div>
-              <strong>{{ event.title }}</strong>
-              <p>{{ event.detail }}</p>
-              <small>{{ event.date }} · {{ event.time }}</small>
-            </div>
-          </li>
-        </ol>
+        <app-timeline
+          :steps="(selectedTransfer.events || []).map(ev => ({
+            name: ev.title,
+            detail: ev.detail,
+            time: `${ev.date} · ${ev.time}`,
+            type: ev.type === 'warning' ? 'alert' : ev.type === 'success' ? 'success' : 'checkpoint'
+          }))"
+        />
       </content-card>
     </div>
   </base-screen>
