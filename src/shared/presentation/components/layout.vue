@@ -33,6 +33,6 @@ import AppSidebar from './app-sidebar.vue';
 
 .screen-content-bg {
   background-color: #F6F5EF;
-  min-height: calc(100vh - 44px);
+  min-height: calc(100vh - 58px);
 }
 </style>

@@ -64,19 +64,14 @@ function isItemActive(path) {
   if (path === '/home') {
     return route.path === '/home' || route.path === '/';
   }
-  if (route.path === path) return true;
-  const deepestMatch = menuGroups
-    .flatMap((group) => group.items)
-    .filter((item) => route.path === item.to || route.path.startsWith(`${item.to}/`))
-    .sort((left, right) => right.to.length - left.to.length)[0];
-  return deepestMatch?.to === path;
+  return route.path === path;
 }
 </script>
 
 <template>
   <aside class="sidebar-container flex flex-column select-none">
     <!-- Top Pill: Panel -->
-    <div class="px-1 pt-2 pb-1">
+    <div class="px-3 pt-3 pb-2">
       <router-link
         to="/home"
         class="nav-item flex align-items-center gap-2 px-3 py-2 border-round-3xl no-underline"
@@ -88,7 +83,7 @@ function isItemActive(path) {
     </div>
 
     <!-- Navigation Scrollable Area -->
-    <nav class="flex-1 overflow-y-auto px-1 pb-4 flex flex-column gap-2 sidebar-scroll">
+    <nav class="flex-1 overflow-y-auto px-3 pb-4 flex flex-column gap-2 sidebar-scroll">
       <div v-for="group in menuGroups" :key="group.category" class="flex flex-column gap-1">
         <!-- Category Title -->
         <span class="category-header px-3 pt-2">
@@ -113,28 +108,25 @@ function isItemActive(path) {
 
 <style scoped>
 .sidebar-container {
-  width: 155px;
-  min-width: 155px;
+  width: 200px;
+  min-width: 200px;
   background-color: #10312F;
-  height: calc(100vh - 44px);
+  height: calc(100vh - 58px);
 }
 
 .category-header {
   color: #5A7C75;
-  font-size: 0.5rem;
+  font-size: 0.62rem;
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
 
 .nav-item {
-  font-size: 0.64rem;
+  font-size: 0.76rem;
   font-weight: 500;
   transition: all 0.15s ease-in-out;
-  padding: 0.36rem 0.48rem !important;
 }
-
-.category-header { padding-inline: 0.55rem !important; }
 
 .inactive-item {
   color: #B8CBC6;

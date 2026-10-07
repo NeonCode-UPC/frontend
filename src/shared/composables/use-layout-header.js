@@ -6,8 +6,8 @@ const searchVisible = ref(true);
 const notificationCount = ref(2);
 
 const currentUser = ref({
-  name: 'Andrea Salazar',
-  role: 'Supervisora hospitalaria',
+  name: 'Luis Quispe',
+  role: 'Operador logístico',
   institution: 'Clínica San Borja'
 });
 
