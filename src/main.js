@@ -37,12 +37,45 @@ import {
 } from "primevue";
 import router from "./router.js";
 import pinia from "./pinia.js";
+import BaseScreen from './shared/presentation/components/base-screen.vue';
+import KpiCard from './shared/presentation/components/kpi-card.vue';
+import ContentCard from './shared/presentation/components/content-card.vue';
+import StatusBadge from './shared/presentation/components/status-badge.vue';
+import EmptyState from './shared/presentation/components/empty-state.vue';
+import AppDataTable from './shared/presentation/components/app-data-table.vue';
+import FilterBar from './shared/presentation/components/filter-bar.vue';
+import PillTabs from './shared/presentation/components/pill-tabs.vue';
+import AppTimeline from './shared/presentation/components/app-timeline.vue';
+import ActionDialog from './shared/presentation/components/action-dialog.vue';
+import BatteryGauge from './shared/presentation/components/battery-gauge.vue';
+import UserAvatar from './shared/presentation/components/user-avatar.vue';
 
 const primeUiLicenseKey = import.meta.env.VITE_PRIME_UI_LICENSE_KEY;
 
 createApp(App)
+    .component('base-screen',       BaseScreen)
+    .component('kpi-card',          KpiCard)
+    .component('content-card',      ContentCard)
+    .component('status-badge',      StatusBadge)
+    .component('empty-state',       EmptyState)
+    .component('app-data-table',    AppDataTable)
+    .component('filter-bar',        FilterBar)
+    .component('pill-tabs',         PillTabs)
+    .component('app-timeline',      AppTimeline)
+    .component('action-dialog',     ActionDialog)
+    .component('battery-gauge',     BatteryGauge)
+    .component('user-avatar',       UserAvatar)
     .use(i18n)
-    .use(PrimeVue, { theme: { preset: Material }, ripple: true, license: primeUiLicenseKey })
+    .use(PrimeVue, {
+        theme: {
+            preset: Material,
+            options: {
+                darkModeSelector: 'none'
+            }
+        },
+        ripple: true,
+        license: primeUiLicenseKey
+    })
     .use(ConfirmationService)
     .use(DialogService)
     .use(ToastService)

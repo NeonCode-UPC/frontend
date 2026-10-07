@@ -64,26 +64,31 @@ function isItemActive(path) {
   if (path === '/home') {
     return route.path === '/home' || route.path === '/';
   }
-  return route.path === path;
+  if (route.path === path) return true;
+  const deepestMatch = menuGroups
+    .flatMap((group) => group.items)
+    .filter((item) => route.path === item.to || route.path.startsWith(`${item.to}/`))
+    .sort((left, right) => right.to.length - left.to.length)[0];
+  return deepestMatch?.to === path;
 }
 </script>
 
 <template>
   <aside class="sidebar-container flex flex-column select-none">
     <!-- Top Pill: Panel -->
-    <div class="px-3 pt-3 pb-2">
+    <div class="px-2 pt-2 pb-1">
       <router-link
         to="/home"
         class="nav-item flex align-items-center gap-2 px-3 py-2 border-round-3xl no-underline"
         :class="isItemActive('/home') ? 'active-pill' : 'inactive-item'"
       >
-        <i class="pi pi-th-large text-xs"></i>
+        <i class="pi pi-th-large text-sm"></i>
         <span>Panel</span>
       </router-link>
     </div>
 
     <!-- Navigation Scrollable Area -->
-    <nav class="flex-1 overflow-y-auto px-3 pb-4 flex flex-column gap-2 sidebar-scroll">
+    <nav class="flex-1 overflow-y-auto px-2 pb-4 flex flex-column gap-2 sidebar-scroll">
       <div v-for="group in menuGroups" :key="group.category" class="flex flex-column gap-1">
         <!-- Category Title -->
         <span class="category-header px-3 pt-2">
@@ -98,7 +103,7 @@ function isItemActive(path) {
           class="nav-item flex align-items-center gap-2 px-3 py-2 border-round-3xl no-underline"
           :class="isItemActive(item.to) ? 'active-pill' : 'inactive-item'"
         >
-          <i :class="item.icon + ' text-xs'"></i>
+          <i :class="[item.icon, 'text-sm']"></i>
           <span>{{ item.label }}</span>
         </router-link>
       </div>
@@ -110,22 +115,27 @@ function isItemActive(path) {
 .sidebar-container {
   width: 200px;
   min-width: 200px;
-  background-color: #10312F;
-  height: calc(100vh - 58px);
+  background-color: var(--color-brand-dark, #10312F);
+  height: 100%;
+  max-height: 100%;
+  overflow: hidden;
+  flex-shrink: 0;
 }
 
 .category-header {
   color: #5A7C75;
-  font-size: 0.62rem;
+  font-size: 0.6875rem;
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
+  padding-inline: 0.75rem !important;
 }
 
 .nav-item {
-  font-size: 0.76rem;
+  font-size: 0.8125rem;
   font-weight: 500;
   transition: all 0.15s ease-in-out;
+  padding: 0.45rem 0.75rem !important;
 }
 
 .inactive-item {
@@ -138,7 +148,7 @@ function isItemActive(path) {
 }
 
 .active-pill {
-  background-color: #B9DDA0 !important;
+  background-color: var(--color-brand-mint, #B9DDA0) !important;
   color: #10312F !important;
   font-weight: 700 !important;
 }
