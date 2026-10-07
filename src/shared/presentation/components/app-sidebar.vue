@@ -116,7 +116,10 @@ function isItemActive(path) {
   width: 200px;
   min-width: 200px;
   background-color: var(--color-brand-dark, #10312F);
-  height: calc(100vh - 54px);
+  height: 100%;
+  max-height: 100%;
+  overflow: hidden;
+  flex-shrink: 0;
 }
 
 .category-header {
