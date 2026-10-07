@@ -66,10 +66,12 @@ const plans = [
       </div>
 
       <!-- Catálogo de planes institucionales -->
-      <content-card
-        title="Planes disponibles"
-        subtitle="Selecciona el plan que mejor se adapte a tu institución."
-      >
+      <section class="plans-section">
+        <div class="section-heading mb-3">
+          <h2 class="text-base md:text-lg font-bold text-main m-0">Planes disponibles</h2>
+          <p class="text-xs text-muted m-0 mt-1">Selecciona el plan que mejor se adapte a tu institución.</p>
+        </div>
+
         <div class="grid">
           <div
             v-for="plan in plans"
@@ -110,7 +112,7 @@ const plans = [
             </content-card>
           </div>
         </div>
-      </content-card>
+      </section>
     </div>
   </base-screen>
 </template>
