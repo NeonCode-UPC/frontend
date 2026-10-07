@@ -23,7 +23,6 @@ const selectedTransfer = computed(() => store.findTransfer(selectedId.value));
 const openTransfer = (id) => router.push({ path: '/custody', query: { transfer: id } });
 const statusLabel = (status) => ({ closed: 'Cerrada', 'in-transit': 'En tránsito', exception: 'Cerrada con excursión' }[status] || status);
 const receivedTime = (transfer) => transfer.receivedAt?.split('·')[1]?.trim() || '—';
-const recipientName = (transfer) => transfer.recipient?.replace(' Lino', '') || '—';
 </script>
 
 <template>
@@ -40,7 +39,7 @@ const recipientName = (transfer) => transfer.recipient?.replace(' Lino', '') || 
           <td data-label="Traslado"><strong>{{ transfer.id }}</strong></td>
           <td data-label="Salida">{{ transfer.departureAt.split('·')[1]?.trim() }}</td>
           <td data-label="Recepción">{{ receivedTime(transfer) }}</td>
-          <td data-label="Responsable">{{ recipientName(transfer) }}</td>
+          <td data-label="Responsable">{{ transfer.recipient || '—' }}</td>
           <td data-label="Estado"><span class="status-badge" :class="transfer.status">{{ statusLabel(transfer.status) }}</span></td>
         </tr>
       </tbody></table></div>
