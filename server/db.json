@@ -7,5 +7,6 @@
   "ambulances": [],
   "critical-incidents": [],
   "custody-transfers": [],
-  "digital-audit-manifests": []
+  "digital-audit-manifests": [],
+  "audit-events": []
 }

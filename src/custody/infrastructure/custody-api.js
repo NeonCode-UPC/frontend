@@ -11,5 +11,6 @@ export class CustodyApi {
 
   getTransfers() { return this.transfers.getAll(); }
   getManifests() { return this.manifests.getAll(); }
+  getAuditEvents() { return baseApi.http.get('/audit-events'); }
   getManifestByTransfer(transferId) { return baseApi.http.get(`/digital-audit-manifests?transferId=${transferId}`); }
 }
