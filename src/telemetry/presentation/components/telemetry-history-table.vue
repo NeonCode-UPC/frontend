@@ -125,54 +125,52 @@ function formatBattery(value) {
     </div>
 
     <!-- Telemetric History Data Table Card (MBA-53) -->
-    <div class="table-card screen-card border-round-2xl p-0 overflow-hidden">
-      <app-data-table
-        :value="filteredLogs"
-        :paginator="false"
-        min-width="35rem"
-      >
-        <!-- Columna: HORA -->
-        <pv-column field="time" header="HORA">
-          <template #body="{ data }">
-            <span class="table-cell-bold">{{ data.time }}</span>
-          </template>
-        </pv-column>
+    <app-data-table
+      :value="filteredLogs"
+      :paginator="false"
+      min-width="35rem"
+    >
+      <!-- Columna: HORA -->
+      <pv-column field="time" header="HORA">
+        <template #body="{ data }">
+          <span class="table-cell-bold">{{ data.time }}</span>
+        </template>
+      </pv-column>
 
-        <!-- Columna: TEMPERATURA -->
-        <pv-column field="temperature" header="TEMPERATURA">
-          <template #body="{ data }">
-            <span class="table-cell-regular">{{ formatTemp(data.temperature) }}</span>
-          </template>
-        </pv-column>
+      <!-- Columna: TEMPERATURA -->
+      <pv-column field="temperature" header="TEMPERATURA">
+        <template #body="{ data }">
+          <span class="table-cell-regular">{{ formatTemp(data.temperature) }}</span>
+        </template>
+      </pv-column>
 
-        <!-- Columna: PESO -->
-        <pv-column field="netWeight" header="PESO">
-          <template #body="{ data }">
-            <span class="table-cell-regular">{{ formatWeight(data.netWeight) }}</span>
-          </template>
-        </pv-column>
+      <!-- Columna: PESO -->
+      <pv-column field="netWeight" header="PESO">
+        <template #body="{ data }">
+          <span class="table-cell-regular">{{ formatWeight(data.netWeight) }}</span>
+        </template>
+      </pv-column>
 
-        <!-- Columna: BATERÍA -->
-        <pv-column field="batteryLevel" header="BATERÍA">
-          <template #body="{ data }">
-            <div class="flex align-items-center gap-2">
-              <battery-gauge :level="data.batteryLevel" variant="capsule" />
-              <span class="text-xs font-semibold text-main">{{ formatBattery(data.batteryLevel) }}</span>
-            </div>
-          </template>
-        </pv-column>
+      <!-- Columna: BATERÍA -->
+      <pv-column field="batteryLevel" header="BATERÍA">
+        <template #body="{ data }">
+          <div class="flex align-items-center gap-2">
+            <battery-gauge :level="data.batteryLevel" variant="capsule" />
+            <span class="text-xs font-semibold text-main">{{ formatBattery(data.batteryLevel) }}</span>
+          </div>
+        </template>
+      </pv-column>
 
-        <!-- Columna: TAPA -->
-        <pv-column field="lidStatus" header="TAPA">
-          <template #body="{ data }">
-            <status-badge
-              :status="data.lidStatus === 'closed' ? 'success' : 'warning'"
-              :label="data.lidStatus === 'closed' ? 'Cerrada' : 'Abierta'"
-            />
-          </template>
-        </pv-column>
-      </app-data-table>
-    </div>
+      <!-- Columna: TAPA -->
+      <pv-column field="lidStatus" header="TAPA">
+        <template #body="{ data }">
+          <status-badge
+            :status="data.lidStatus === 'closed' ? 'success' : 'warning'"
+            :label="data.lidStatus === 'closed' ? 'Cerrada' : 'Abierta'"
+          />
+        </template>
+      </pv-column>
+    </app-data-table>
   </div>
 </template>
 

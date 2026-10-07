@@ -39,46 +39,44 @@ const receivedTime = (transfer) => transfer.receivedAt?.split('·')[1]?.trim() |
         <button type="button" @click="store.load()">Reintentar</button>
       </p>
 
-      <content-card padding="p-0" class="overflow-hidden">
-        <app-data-table
-          :value="filteredTransfers"
-          :loading="store.loading"
-          min-width="45rem"
-          empty-title="No hay traslados que coincidan con la búsqueda"
-          empty-message="Intenta con otro código de seguimiento o filtro."
-          @row-click="event => openTransfer(event.data.id)"
-        >
-          <pv-column field="id" header="TRASLADO" sortable>
-            <template #body="{ data }">
-              <strong class="text-main cursor-pointer">{{ data.id }}</strong>
-            </template>
-          </pv-column>
+      <app-data-table
+        :value="filteredTransfers"
+        :loading="store.loading"
+        min-width="45rem"
+        empty-title="No hay traslados que coincidan con la búsqueda"
+        empty-message="Intenta con otro código de seguimiento o filtro."
+        @row-click="event => openTransfer(event.data.id)"
+      >
+        <pv-column field="id" header="TRASLADO">
+          <template #body="{ data }">
+            <strong class="text-main cursor-pointer">{{ data.id }}</strong>
+          </template>
+        </pv-column>
 
-          <pv-column field="departureAt" header="SALIDA">
-            <template #body="{ data }">
-              <span class="text-secondary text-sm">{{ data.departureAt?.split('·')[1]?.trim() }}</span>
-            </template>
-          </pv-column>
+        <pv-column field="departureAt" header="SALIDA">
+          <template #body="{ data }">
+            <span class="text-secondary text-sm">{{ data.departureAt?.split('·')[1]?.trim() }}</span>
+          </template>
+        </pv-column>
 
-          <pv-column field="receivedAt" header="RECEPCIÓN">
-            <template #body="{ data }">
-              <span class="text-secondary text-sm">{{ receivedTime(data) }}</span>
-            </template>
-          </pv-column>
+        <pv-column field="receivedAt" header="RECEPCIÓN">
+          <template #body="{ data }">
+            <span class="text-secondary text-sm">{{ receivedTime(data) }}</span>
+          </template>
+        </pv-column>
 
-          <pv-column field="recipient" header="RESPONSABLE">
-            <template #body="{ data }">
-              <span class="text-secondary text-sm">{{ data.recipient || '—' }}</span>
-            </template>
-          </pv-column>
+        <pv-column field="recipient" header="RESPONSABLE">
+          <template #body="{ data }">
+            <span class="text-secondary text-sm">{{ data.recipient || '—' }}</span>
+          </template>
+        </pv-column>
 
-          <pv-column field="status" header="ESTADO" sortable>
-            <template #body="{ data }">
-              <status-badge :status="data.status" :label="statusLabel(data.status)" />
-            </template>
-          </pv-column>
-        </app-data-table>
-      </content-card>
+        <pv-column field="status" header="ESTADO">
+          <template #body="{ data }">
+            <status-badge :status="data.status" :label="statusLabel(data.status)" />
+          </template>
+        </pv-column>
+      </app-data-table>
 
       <content-card
         v-if="route.query.transfer && selectedTransfer"

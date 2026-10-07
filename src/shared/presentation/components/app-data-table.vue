@@ -92,6 +92,9 @@ defineEmits(['row-click', 'row-select', 'update:selection']);
 <style scoped>
 .app-data-table-wrapper {
   background-color: var(--bg-card, #FFFFFF);
+  border: 1px solid var(--border-subtle, #E8E6DF);
+  border-radius: 16px;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
 }
 
 .table-loading-state {
@@ -111,41 +114,71 @@ defineEmits(['row-click', 'row-select', 'update:selection']);
 :deep(.app-medical-table .p-datatable-header) {
   background: #FFFFFF !important;
   border: none;
-  padding: 1rem;
+  padding: 1rem 1.25rem;
 }
 
 :deep(.app-medical-table .p-datatable-thead > tr > th) {
   background: #FFFFFF !important;
   color: var(--text-secondary, #5A706A) !important;
-  font-size: 0.6875rem !important;
+  font-size: 0.72rem !important;
   font-weight: 700 !important;
-  letter-spacing: 0.05em !important;
+  letter-spacing: 0.04em !important;
   text-transform: uppercase !important;
-  border-bottom: 1px solid var(--border-subtle, #ECEAE1) !important;
-  padding: 0.9rem 1.1rem !important;
+  border-bottom: 1px solid var(--border-subtle, #E8E6DF) !important;
+  padding: 1rem 1.25rem !important;
+}
+
+:deep(.app-medical-table .p-datatable-thead > tr > th:hover),
+:deep(.app-medical-table .p-datatable-thead > tr > th:focus) {
+  background: #FFFFFF !important;
+  color: var(--text-main, #10312F) !important;
+  outline: none !important;
+}
+
+:deep(.app-medical-table .p-datatable-column-title) {
+  font-size: 0.72rem !important;
+  font-weight: 700 !important;
+  color: var(--text-secondary, #5A706A) !important;
+  letter-spacing: 0.04em !important;
+  text-transform: uppercase !important;
+}
+
+:deep(.app-medical-table .p-datatable-sort-icon) {
+  display: none !important;
+}
+
+:deep(.app-medical-table .p-datatable-column-header-content) {
+  display: flex !important;
+  align-items: center !important;
+  gap: 0.35rem !important;
 }
 
 :deep(.app-medical-table .p-datatable-tbody > tr) {
   background: #FFFFFF !important;
   transition: background-color 0.12s ease !important;
+  cursor: pointer;
 }
 
 :deep(.app-medical-table .p-datatable-tbody > tr:hover) {
-  background: #F9FAF8 !important;
+  background: #F8FAF9 !important;
 }
 
 :deep(.app-medical-table .p-datatable-tbody > tr > td) {
-  border-bottom: 1px solid var(--border-subtle, #F1EFEA) !important;
-  padding: 0.85rem 1.1rem !important;
-  font-size: 0.8125rem !important;
+  border-bottom: 1px solid #F0EFEA !important;
+  padding: 1.15rem 1.25rem !important;
+  font-size: 0.875rem !important;
   color: var(--text-main, #10312F) !important;
-  vertical-align: middle;
+  vertical-align: middle !important;
+}
+
+:deep(.app-medical-table .p-datatable-tbody > tr:last-child > td) {
+  border-bottom: none !important;
 }
 
 :deep(.app-medical-table .p-paginator) {
   background: #FFFFFF !important;
-  border-top: 1px solid var(--border-subtle, #ECEAE1) !important;
-  padding: 0.75rem 1rem !important;
+  border-top: 1px solid var(--border-subtle, #E8E6DF) !important;
+  padding: 0.75rem 1.25rem !important;
   font-size: 0.8125rem !important;
 }
 </style>

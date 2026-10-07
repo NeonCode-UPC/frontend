@@ -35,39 +35,37 @@ const exportRecords = () => window.print();
         <button type="button" @click="store.load()">Reintentar</button>
       </p>
 
-      <content-card padding="p-0" class="overflow-hidden">
-        <app-data-table
-          :value="events"
-          :loading="store.loading"
-          min-width="45rem"
-          empty-title="No hay eventos que coincidan con la búsqueda"
-          empty-message="Intenta con otro término o filtro de búsqueda."
-        >
-          <pv-column field="date" header="FECHA" sortable>
-            <template #body="{ data }">
-              <span class="text-secondary text-sm">{{ data.date.slice(0, 5) }} {{ data.time }}</span>
-            </template>
-          </pv-column>
+      <app-data-table
+        :value="events"
+        :loading="store.loading"
+        min-width="45rem"
+        empty-title="No hay eventos que coincidan con la búsqueda"
+        empty-message="Intenta con otro término o filtro de búsqueda."
+      >
+        <pv-column field="date" header="FECHA">
+          <template #body="{ data }">
+            <span class="text-secondary text-sm">{{ data.date.slice(0, 5) }} {{ data.time }}</span>
+          </template>
+        </pv-column>
 
-          <pv-column field="user" header="USUARIO" sortable>
-            <template #body="{ data }">
-              <span class="text-main font-medium text-sm">{{ data.user }}</span>
-            </template>
-          </pv-column>
+        <pv-column field="user" header="USUARIO">
+          <template #body="{ data }">
+            <span class="text-main font-medium text-sm">{{ data.user }}</span>
+          </template>
+        </pv-column>
 
-          <pv-column field="event" header="EVENTO" sortable>
-            <template #body="{ data }">
-              <span class="text-secondary text-sm">{{ data.event }}</span>
-            </template>
-          </pv-column>
+        <pv-column field="event" header="EVENTO">
+          <template #body="{ data }">
+            <span class="text-secondary text-sm">{{ data.event }}</span>
+          </template>
+        </pv-column>
 
-          <pv-column field="resource" header="RECURSO" sortable>
-            <template #body="{ data }">
-              <strong class="text-main text-sm font-semibold">{{ data.resource }}</strong>
-            </template>
-          </pv-column>
-        </app-data-table>
-      </content-card>
+        <pv-column field="resource" header="RECURSO">
+          <template #body="{ data }">
+            <strong class="text-main text-sm font-semibold">{{ data.resource }}</strong>
+          </template>
+        </pv-column>
+      </app-data-table>
     </div>
   </base-screen>
 </template>

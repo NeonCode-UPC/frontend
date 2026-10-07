@@ -211,74 +211,69 @@ function getStatusLabel(container) {
       </div>
 
       <!-- ================= OPTION A: TABLE VIEW (EXACT MBA-29) ================= -->
-      <div v-else-if="displayFormat === 'table'" class="catalog-table-panel border-round-2xl overflow-hidden shadow-sm">
-        <div class="table-responsive">
-          <table class="smartbox-table w-full">
-            <thead>
-              <tr>
-                <th class="th-cell text-left">SMARTBOX</th>
-                <th class="th-cell text-left">AMBULANCIA</th>
-                <th class="th-cell text-left">TEMPERATURA</th>
-                <th class="th-cell text-left">BATERÍA</th>
-                <th class="th-cell text-left">CONECTIVIDAD</th>
-                <th class="th-cell text-left">ESTADO</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr
-                v-for="c in filteredContainers"
-                :key="c.id"
-                class="table-row cursor-pointer transition-all"
-                tabindex="0"
-                @click="selectContainerForDetail(c)"
-                @keydown.enter="selectContainerForDetail(c)"
-              >
-                <!-- SMARTBOX -->
-                <td class="td-cell">
-                  <span class="box-id-badge font-bold text-main">{{ c.id }}</span>
-                </td>
+      <app-data-table
+        v-else-if="displayFormat === 'table'"
+        :value="filteredContainers"
+        :paginator="false"
+        min-width="45rem"
+        @row-click="selectContainerForDetail($event.data)"
+      >
+        <!-- SMARTBOX -->
+        <pv-column field="id" header="SMARTBOX">
+          <template #body="{ data }">
+            <span class="box-id-badge font-bold text-main">{{ data.id }}</span>
+          </template>
+        </pv-column>
 
-                <!-- AMBULANCIA -->
-                <td class="td-cell text-muted font-medium">
-                  {{ c.ambulancePlate || '—' }}
-                </td>
+        <!-- AMBULANCIA -->
+        <pv-column field="ambulancePlate" header="AMBULANCIA">
+          <template #body="{ data }">
+            <span class="text-muted font-medium">{{ data.ambulancePlate || '—' }}</span>
+          </template>
+        </pv-column>
 
-                <!-- TEMPERATURA -->
-                <td class="td-cell font-bold text-main">
-                  {{ c.status === 'offline' ? '—' : `${c.currentTemperature.toFixed(1).replace('.', ',')} °C` }}
-                </td>
+        <!-- TEMPERATURA -->
+        <pv-column field="currentTemperature" header="TEMPERATURA">
+          <template #body="{ data }">
+            <span class="font-bold text-main">
+              {{ data.status === 'offline' ? '—' : `${data.currentTemperature.toFixed(1).replace('.', ',')} °C` }}
+            </span>
+          </template>
+        </pv-column>
 
-                <!-- BATERÍA (Battery Gauge) -->
-                <td class="td-cell">
-                  <battery-gauge :level="c.batteryLevel" variant="capsule" />
-                </td>
+        <!-- BATERÍA -->
+        <pv-column field="batteryLevel" header="BATERÍA">
+          <template #body="{ data }">
+            <battery-gauge :level="data.batteryLevel" variant="capsule" />
+          </template>
+        </pv-column>
 
-                <!-- CONECTIVIDAD -->
-                <td class="td-cell">
-                  <span
-                    class="tag-conn text-xs font-semibold px-3 py-1 border-round-pill inline-flex align-items-center gap-1"
-                    :class="c.status !== 'offline' ? 'conn-on' : 'conn-off'"
-                  >
-                    <span class="dot-indicator" :class="c.status !== 'offline' ? 'dot-green' : 'dot-gray'"></span>
-                    {{ c.status !== 'offline' ? 'En línea' : 'Sin conexión' }}
-                  </span>
-                </td>
+        <!-- CONECTIVIDAD -->
+        <pv-column header="CONECTIVIDAD">
+          <template #body="{ data }">
+            <span
+              class="tag-conn text-xs font-semibold px-3 py-1 border-round-pill inline-flex align-items-center gap-1"
+              :class="data.status !== 'offline' ? 'conn-on' : 'conn-off'"
+            >
+              <span class="dot-indicator" :class="data.status !== 'offline' ? 'dot-green' : 'dot-gray'"></span>
+              {{ data.status !== 'offline' ? 'En línea' : 'Sin conexión' }}
+            </span>
+          </template>
+        </pv-column>
 
-                <!-- ESTADO -->
-                <td class="td-cell">
-                  <span
-                    class="tag-state text-xs font-semibold px-3 py-1 border-round-pill inline-flex align-items-center gap-1"
-                    :class="getStatusBadgeClass(c)"
-                  >
-                    <span class="dot-indicator"></span>
-                    {{ getStatusLabel(c) }}
-                  </span>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
+        <!-- ESTADO -->
+        <pv-column header="ESTADO">
+          <template #body="{ data }">
+            <span
+              class="tag-state text-xs font-semibold px-3 py-1 border-round-pill inline-flex align-items-center gap-1"
+              :class="getStatusBadgeClass(data)"
+            >
+              <span class="dot-indicator"></span>
+              {{ getStatusLabel(data) }}
+            </span>
+          </template>
+        </pv-column>
+      </app-data-table>
 
       <!-- ================= OPTION B: GRID VIEW (CARDS) ================= -->
       <div v-else class="catalog-grid grid m-0 gap-3">
@@ -389,42 +384,6 @@ function getStatusLabel(container) {
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
-.catalog-table-panel {
-  background-color: #FFFFFF;
-  border: 1px solid #E8E6DF;
-}
-
-.table-responsive {
-  overflow-x: auto;
-}
-
-.smartbox-table {
-  border-collapse: collapse;
-}
-
-.th-cell {
-  padding: 1rem 1.25rem;
-  font-size: 0.72rem;
-  font-weight: 700;
-  color: #5A706A;
-  letter-spacing: 0.04em;
-  border-bottom: 1px solid #E8E6DF;
-}
-
-.td-cell {
-  padding: 1.15rem 1.25rem;
-  font-size: 0.875rem;
-  border-bottom: 1px solid #F0EFEA;
-  vertical-align: middle;
-}
-
-.table-row:hover {
-  background-color: #F8FAF9;
-}
-
-.table-row:last-child .td-cell {
-  border-bottom: none;
-}
 
 /* Battery Capsule */
 .battery-indicator {

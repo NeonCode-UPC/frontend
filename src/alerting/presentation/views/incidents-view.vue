@@ -51,71 +51,69 @@ const filteredIncidents = computed(() => {
       {{ store.error }}
     </div>
 
-    <content-card padding="p-0" class="overflow-hidden">
-      <app-data-table
-        :value="filteredIncidents"
-        :loading="store.loading"
-        :rows="10"
-        :rows-per-page-options="[5, 10, 20]"
-        min-width="55rem"
-        empty-title="No se encontraron incidentes"
-        empty-message="No hay incidentes registrados en el historial técnico-sanitario."
-      >
-        <!-- Columna: INCIDENTE -->
-        <pv-column field="code" header="INCIDENTE" sortable>
-          <template #body="{ data }">
-            <div class="flex flex-column">
-              <strong class="text-main font-semibold text-sm">{{ data.code }}</strong>
-              <small class="text-muted text-xs capitalize">{{ data.severity }}</small>
-            </div>
-          </template>
-        </pv-column>
+    <app-data-table
+      :value="filteredIncidents"
+      :loading="store.loading"
+      :rows="10"
+      :rows-per-page-options="[5, 10, 20]"
+      min-width="55rem"
+      empty-title="No se encontraron incidentes"
+      empty-message="No hay incidentes registrados en el historial técnico-sanitario."
+    >
+      <!-- Columna: INCIDENTE -->
+      <pv-column field="code" header="INCIDENTE">
+        <template #body="{ data }">
+          <div class="flex flex-column">
+            <strong class="text-main font-semibold text-sm">{{ data.code }}</strong>
+            <small class="text-muted text-xs capitalize">{{ data.severity }}</small>
+          </div>
+        </template>
+      </pv-column>
 
-        <!-- Columna: TIPO -->
-        <pv-column field="type" header="TIPO" sortable>
-          <template #body="{ data }">
-            <span class="text-main font-medium text-sm capitalize">
-              {{ data.type.replaceAll('_', ' ') }}
-            </span>
-          </template>
-        </pv-column>
+      <!-- Columna: TIPO -->
+      <pv-column field="type" header="TIPO">
+        <template #body="{ data }">
+          <span class="text-main font-medium text-sm capitalize">
+            {{ data.type.replaceAll('_', ' ') }}
+          </span>
+        </template>
+      </pv-column>
 
-        <!-- Columna: SMARTBOX / ORDEN -->
-        <pv-column field="containerId" header="SMARTBOX / ORDEN" sortable>
-          <template #body="{ data }">
-            <div class="flex flex-column">
-              <strong class="text-main font-semibold text-sm">{{ data.containerId }}</strong>
-              <small class="text-muted text-xs">{{ data.transportOrder }}</small>
-            </div>
-          </template>
-        </pv-column>
+      <!-- Columna: SMARTBOX / ORDEN -->
+      <pv-column field="containerId" header="SMARTBOX / ORDEN">
+        <template #body="{ data }">
+          <div class="flex flex-column">
+            <strong class="text-main font-semibold text-sm">{{ data.containerId }}</strong>
+            <small class="text-muted text-xs">{{ data.transportOrder }}</small>
+          </div>
+        </template>
+      </pv-column>
 
-        <!-- Columna: DETECCIÓN -->
-        <pv-column field="detectedAt" header="DETECCIÓN" sortable>
-          <template #body="{ data }">
-            <span class="text-secondary text-sm white-space-nowrap">
-              {{ formatDate(data.detectedAt) }}
-            </span>
-          </template>
-        </pv-column>
+      <!-- Columna: DETECCIÓN -->
+      <pv-column field="detectedAt" header="DETECCIÓN">
+        <template #body="{ data }">
+          <span class="text-secondary text-sm white-space-nowrap">
+            {{ formatDate(data.detectedAt) }}
+          </span>
+        </template>
+      </pv-column>
 
-        <!-- Columna: ESTADO -->
-        <pv-column field="status" header="ESTADO" sortable>
-          <template #body="{ data }">
-            <status-badge :status="data.status" />
-          </template>
-        </pv-column>
+      <!-- Columna: ESTADO -->
+      <pv-column field="status" header="ESTADO">
+        <template #body="{ data }">
+          <status-badge :status="data.status" />
+        </template>
+      </pv-column>
 
-        <!-- Columna: RESOLUCIÓN -->
-        <pv-column field="resolution" header="RESOLUCIÓN">
-          <template #body="{ data }">
-            <span class="text-secondary text-xs line-height-3 block" style="max-width: 320px">
-              {{ data.resolution || 'Pendiente de cierre y emisión de informe' }}
-            </span>
-          </template>
-        </pv-column>
-      </app-data-table>
-    </content-card>
+      <!-- Columna: RESOLUCIÓN -->
+      <pv-column field="resolution" header="RESOLUCIÓN">
+        <template #body="{ data }">
+          <span class="text-secondary text-xs line-height-3 block" style="max-width: 320px">
+            {{ data.resolution || 'Pendiente de cierre y emisión de informe' }}
+          </span>
+        </template>
+      </pv-column>
+    </app-data-table>
   </base-screen>
 </template>
 

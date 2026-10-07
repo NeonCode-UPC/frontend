@@ -110,76 +110,74 @@ function confirmDelete(user) {
       </filter-bar>
 
       <!-- Tabla de usuarios con app-data-table médica -->
-      <content-card padding="p-0" class="overflow-hidden">
-        <app-data-table
-          :value="filteredUsers"
-          :rows="10"
-          :rows-per-page-options="[5, 10, 20]"
-          min-width="55rem"
-          empty-title="No se encontraron usuarios"
-          empty-message="Intenta con otro término de búsqueda o rol."
-        >
-          <!-- Columna: USUARIO (Avatar + Nombre destacado + ID) -->
-          <pv-column field="name" header="USUARIO" sortable>
-            <template #body="{ data }">
-              <div class="flex align-items-center gap-3 py-1">
-                <user-avatar :name="data.name" size="md" />
-                <div class="flex flex-column">
-                  <span class="font-bold text-main text-sm line-height-2">{{ data.name }}</span>
-                  <span class="text-xs text-muted font-mono">#{{ String(data.id).padStart(3, '0') }}</span>
-                </div>
+      <app-data-table
+        :value="filteredUsers"
+        :rows="10"
+        :rows-per-page-options="[5, 10, 20]"
+        min-width="55rem"
+        empty-title="No se encontraron usuarios"
+        empty-message="Intenta con otro término de búsqueda o rol."
+      >
+        <!-- Columna: USUARIO (Avatar + Nombre destacado + ID) -->
+        <pv-column field="name" header="USUARIO">
+          <template #body="{ data }">
+            <div class="flex align-items-center gap-3 py-1">
+              <user-avatar :name="data.name" size="md" />
+              <div class="flex flex-column">
+                <span class="font-bold text-main text-sm line-height-2">{{ data.name }}</span>
+                <span class="text-xs text-muted font-mono">#{{ String(data.id).padStart(3, '0') }}</span>
               </div>
-            </template>
-          </pv-column>
+            </div>
+          </template>
+        </pv-column>
 
-          <!-- Columna: CORREO -->
-          <pv-column field="email" header="CORREO">
-            <template #body="{ data }">
-              <span class="text-secondary text-sm">{{ data.email }}</span>
-            </template>
-          </pv-column>
+        <!-- Columna: CORREO -->
+        <pv-column field="email" header="CORREO">
+          <template #body="{ data }">
+            <span class="text-secondary text-sm">{{ data.email }}</span>
+          </template>
+        </pv-column>
 
-          <!-- Columna: ROL -->
-          <pv-column field="role" header="ROL" sortable>
-            <template #body="{ data }">
-              <span class="role-pill">{{ data.role }}</span>
-            </template>
-          </pv-column>
+        <!-- Columna: ROL -->
+        <pv-column field="role" header="ROL">
+          <template #body="{ data }">
+            <span class="role-pill">{{ data.role }}</span>
+          </template>
+        </pv-column>
 
-          <!-- Columna: INSTITUCIÓN -->
-          <pv-column field="institution" header="INSTITUCIÓN">
-            <template #body="{ data }">
-              <span class="text-secondary text-sm font-medium">{{ data.institution }}</span>
-            </template>
-          </pv-column>
+        <!-- Columna: INSTITUCIÓN -->
+        <pv-column field="institution" header="INSTITUCIÓN">
+          <template #body="{ data }">
+            <span class="text-secondary text-sm font-medium">{{ data.institution }}</span>
+          </template>
+        </pv-column>
 
-          <!-- Columna: ESTADO -->
-          <pv-column field="status" header="ESTADO">
-            <template #body="{ data }">
-              <status-badge :status="data.status" />
-            </template>
-          </pv-column>
+        <!-- Columna: ESTADO -->
+        <pv-column field="status" header="ESTADO">
+          <template #body="{ data }">
+            <status-badge :status="data.status" />
+          </template>
+        </pv-column>
 
-          <!-- Columna: ACCIONES -->
-          <pv-column header="ACCIONES" style="width: 6.5rem">
-            <template #body="{ data }">
-              <div class="flex align-items-center gap-2">
-                <button type="button" class="action-icon-btn" title="Editar">
-                  <i class="pi pi-pencil text-xs"></i>
-                </button>
-                <button
-                  type="button"
-                  class="action-icon-btn danger"
-                  title="Eliminar"
-                  @click="confirmDelete(data)"
-                >
-                  <i class="pi pi-trash text-xs"></i>
-                </button>
-              </div>
-            </template>
-          </pv-column>
-        </app-data-table>
-      </content-card>
+        <!-- Columna: ACCIONES -->
+        <pv-column header="ACCIONES" style="width: 6.5rem">
+          <template #body="{ data }">
+            <div class="flex align-items-center gap-2">
+              <button type="button" class="action-icon-btn" title="Editar">
+                <i class="pi pi-pencil text-xs"></i>
+              </button>
+              <button
+                type="button"
+                class="action-icon-btn danger"
+                title="Eliminar"
+                @click="confirmDelete(data)"
+              >
+                <i class="pi pi-trash text-xs"></i>
+              </button>
+            </div>
+          </template>
+        </pv-column>
+      </app-data-table>
 
       <div
         v-if="store.errors.length"
