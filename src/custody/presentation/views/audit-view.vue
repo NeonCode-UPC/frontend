@@ -13,6 +13,7 @@ const exportRecords = () => window.print();
 <template>
   <section class="audit-page">
     <header class="screen-title"><div><span class="breadcrumb">Auditoría</span><h1>Auditoría</h1><p>Registro de eventos de la institución</p></div><button class="export-action" type="button" @click="exportRecords"><i class="pi pi-download"></i> Exportar</button></header>
+    <p v-if="store.error" class="inline-notice"><i class="pi pi-info-circle"></i>{{ store.error }} <button type="button" @click="store.load()">Reintentar</button></p>
     <section class="table-panel" aria-label="Registro de eventos de auditoría">
       <div v-if="store.loading" class="empty-state">Cargando registros…</div>
       <div v-else-if="!events.length" class="empty-state">No hay eventos que coincidan con la búsqueda.</div>

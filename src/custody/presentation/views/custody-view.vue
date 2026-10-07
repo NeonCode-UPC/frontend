@@ -30,7 +30,7 @@ const recipientName = (transfer) => transfer.recipient?.replace(' Lino', '') || 
   <section class="custody-page">
     <header class="screen-title"><span class="breadcrumb">Cadena de custodia</span><h1>Cadena de custodia</h1><p>Estado del sellado por traslado</p></header>
     <label class="mobile-search"><i class="pi pi-search"></i><input v-model="searchQuery" type="search" placeholder="Filtrar por código de custodia" /></label>
-    <p v-if="store.error" class="inline-notice"><i class="pi pi-info-circle"></i>{{ store.error }}</p>
+    <p v-if="store.error" class="inline-notice"><i class="pi pi-info-circle"></i>{{ store.error }} <button type="button" @click="store.load()">Reintentar</button></p>
 
     <section class="table-panel" aria-label="Traslados y estado de custodia">
       <div v-if="store.loading" class="empty-state">Cargando traslados…</div>
