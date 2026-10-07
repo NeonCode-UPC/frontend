@@ -12,20 +12,71 @@ const printManifest = () => window.print();
 </script>
 
 <template>
-  <section class="records-page" v-if="manifest">
-    <header class="screen-title"><div><span class="breadcrumb">Actas digitales / <b>{{ manifest.transferId }}</b></span><h1>Acta digital {{ manifest.transferId }}</h1><p>{{ transfer?.route || '—' }}</p></div><button class="download-action" type="button" @click="printManifest"><i class="pi pi-download"></i> Descargar PDF</button></header>
-    <div class="manifest-grid">
-      <article class="document-preview">
-        <strong>Acta de traslado {{ manifest.transferId }}</strong>
-        <p>Carga: {{ manifest.cargo }}<template v-if="transfer?.temperatureRange"> · {{ transfer.temperatureRange }}</template></p>
-        <p>Recibido por: {{ manifest.recipient }}</p>
-        <p>Fecha y hora: {{ manifest.sealedAt.replace(' · ', ' ') }}</p>
-        <p>Temperatura máx.: {{ manifest.temperatureMax }} · aperturas: {{ manifest.openings }}</p>
-      </article>
-      <aside class="seal-panel"><h2>Sellado</h2><div class="seal-row"><strong>Estado</strong><span>{{ manifest.status }}</span><b v-if="manifest.status === 'valid'" class="valid-badge">Válido</b></div><div class="seal-row"><strong>SHA-256</strong><span>{{ manifest.hash ? `${manifest.hash.slice(0, 4)}…${manifest.hash.slice(-4)}` : '—' }}</span></div></aside>
+  <base-screen
+    breadcrumb="Actas digitales"
+    title="Acta digital"
+    subtitle="Manifiesto sellado con SHA-256 e inmutable"
+    :fluid="true"
+  >
+    <template #actions>
+      <pv-button
+        v-if="manifest"
+        label="Descargar PDF"
+        icon="pi pi-download"
+        class="border-round-pill"
+        @click="printManifest"
+      />
+    </template>
+
+    <div v-if="manifest" class="records-page">
+      <content-card>
+        <div class="manifest-grid">
+          <article class="document-preview">
+            <h3 class="document-title">Acta de traslado {{ manifest.transferId }}</h3>
+            <p>
+              <strong>Carga:</strong> {{ manifest.cargo }}
+              <template v-if="transfer?.temperatureRange">
+                <span class="text-secondary">· {{ transfer.temperatureRange }}</span>
+              </template>
+            </p>
+            <p><strong>Recibido por:</strong> {{ manifest.recipient }}</p>
+            <p><strong>Fecha y hora:</strong> {{ manifest.sealedAt.replace(' · ', ' ') }}</p>
+            <p>
+              <strong>Temperatura máx.:</strong> {{ manifest.temperatureMax }}
+              <span class="text-secondary">· aperturas:</span> {{ manifest.openings }}
+            </p>
+          </article>
+          <aside class="seal-panel">
+            <h2>Sellado</h2>
+            <div class="seal-row">
+              <strong>Estado</strong>
+              <status-badge
+                :status="manifest.status === 'valid' ? 'active' : manifest.status"
+                :label="manifest.status === 'valid' ? 'Válido' : manifest.status"
+              />
+            </div>
+            <div class="seal-row">
+              <strong>SHA-256</strong>
+              <span class="hash-text">{{ manifest.hash ? `${manifest.hash.slice(0, 4)}…${manifest.hash.slice(-4)}` : '—' }}</span>
+            </div>
+          </aside>
+        </div>
+      </content-card>
     </div>
-  </section>
-  <div v-else class="loading-state">{{ store.loading ? 'Cargando actas digitales…' : store.error || 'No hay actas digitales disponibles.' }}<button v-if="store.error" type="button" @click="store.load()">Reintentar</button></div>
+    <div v-else class="loading-state">
+      <div v-if="store.loading" class="p-5 text-center text-muted text-sm">
+        <i class="pi pi-spin pi-spinner mr-2"></i>Cargando actas digitales…
+      </div>
+      <empty-state
+        v-else
+        icon="pi pi-file"
+        title="No hay actas digitales disponibles"
+        :message="store.error || 'No se encontró el acta digital seleccionada.'"
+        :action-label="store.error ? 'Reintentar' : ''"
+        @action="store.load()"
+      />
+    </div>
+  </base-screen>
 </template>
 
 <style scoped src="../styles/digital-records-view.css"></style>

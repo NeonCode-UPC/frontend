@@ -18,55 +18,169 @@ const sortedIncidents = computed(() => [...store.incidents].sort((a, b) => new D
 
 <template>
   <base-screen
+    breadcrumb="Alertas / Historial"
     title="Historial de incidentes"
-    bounded-context="Critical Alerting & Incident Response"
+    subtitle="Evidencia auditable de alertas, acuses y acciones correctivas"
+    :fluid="true"
     search-placeholder="Filtrar por incidente, tipo o resolución..."
   >
-    <template #default="{ searchQuery }">
-      <div class="history-header">
-        <div>
-          <h2>Registro técnico-sanitario</h2>
-          <p>Evidencia auditable de alertas, acuses y acciones correctivas.</p>
-        </div>
-        <router-link to="/alerting" class="back-link"><i class="pi pi-arrow-left"></i> Volver a alertas</router-link>
-      </div>
+    <template #actions>
+      <router-link
+        to="/alerting"
+        class="p-button p-button-outlined p-button-sm border-round-pill flex align-items-center gap-2"
+      >
+        <i class="pi pi-arrow-left"></i>
+        <span>Volver a alertas</span>
+      </router-link>
+    </template>
 
-      <div v-if="store.loading" class="history-state"><i class="pi pi-spin pi-spinner"></i> Cargando historial...</div>
-      <div v-else-if="store.error" class="history-state error">{{ store.error }}</div>
-      <div v-else class="table-wrap">
-        <table>
-          <thead><tr><th>Incidente</th><th>Tipo</th><th>SmartBox / Orden</th><th>Detección</th><th>Estado</th><th>Resolución</th></tr></thead>
-          <tbody>
-            <tr v-for="incident in sortedIncidents.filter(item => !searchQuery || JSON.stringify(item).toLowerCase().includes(searchQuery.toLowerCase()))" :key="incident.id">
-              <td><strong>{{ incident.code }}</strong><small>{{ incident.severity }}</small></td>
-              <td>{{ incident.type.replaceAll('_', ' ') }}</td>
-              <td><strong>{{ incident.containerId }}</strong><small>{{ incident.transportOrder }}</small></td>
-              <td>{{ formatDate(incident.detectedAt) }}</td>
-              <td><span class="status" :class="incident.status">{{ incident.status === 'resolved' ? 'Resuelto' : 'Pendiente' }}</span></td>
-              <td>{{ incident.resolution || 'Pendiente de cierre y emisión de informe' }}</td>
-            </tr>
-          </tbody>
-        </table>
+    <template #default="{ searchQuery }">
+      <div v-if="store.loading" class="history-state">
+        <i class="pi pi-spin pi-spinner mr-2"></i> Cargando historial...
       </div>
+      <div v-else-if="store.error" class="history-state error">
+        {{ store.error }}
+      </div>
+      <empty-state
+        v-else-if="!sortedIncidents.length"
+        icon="pi pi-history"
+        title="No se encontraron incidentes"
+        message="No hay incidentes registrados en el historial técnico-sanitario."
+      />
+      <content-card v-else padding="p-0" class="overflow-hidden">
+        <div class="table-wrap">
+          <table class="incidents-table">
+            <thead>
+              <tr>
+                <th>Incidente</th>
+                <th>Tipo</th>
+                <th>SmartBox / Orden</th>
+                <th>Detección</th>
+                <th>Estado</th>
+                <th>Resolución</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr
+                v-for="incident in sortedIncidents.filter(item => !searchQuery || JSON.stringify(item).toLowerCase().includes(searchQuery.toLowerCase()))"
+                :key="incident.id"
+              >
+                <td>
+                  <strong class="text-main">{{ incident.code }}</strong>
+                  <small class="text-muted">{{ incident.severity }}</small>
+                </td>
+                <td class="type-cell">{{ incident.type.replaceAll('_', ' ') }}</td>
+                <td>
+                  <strong class="text-main">{{ incident.containerId }}</strong>
+                  <small class="text-muted">{{ incident.transportOrder }}</small>
+                </td>
+                <td class="date-cell">{{ formatDate(incident.detectedAt) }}</td>
+                <td>
+                  <status-badge :status="incident.status" />
+                </td>
+                <td class="resolution-cell">{{ incident.resolution || 'Pendiente de cierre y emisión de informe' }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </content-card>
     </template>
   </base-screen>
 </template>
 
 <style scoped>
-.history-header { display: flex; justify-content: space-between; align-items: end; gap: 1rem; margin-bottom: 1rem; }
-.history-header h2 { font-size: 1rem; }
-.history-header p { margin: .2rem 0 0; color: var(--text-secondary); font-size: .76rem; }
-.back-link { color: var(--color-brand-teal); font-size: .75rem; font-weight: 700; white-space: nowrap; }
-.table-wrap { overflow-x: auto; }
-table { width: 100%; min-width: 850px; border-collapse: collapse; font-size: .76rem; }
-th { padding: .7rem; text-align: left; color: var(--text-secondary); background: #f5f6f1; font-size: .65rem; text-transform: uppercase; letter-spacing: .04em; }
-td { padding: .8rem .7rem; border-bottom: 1px solid var(--border-subtle); color: var(--text-secondary); }
-td strong, td small { display: block; color: var(--text-main); }
-td small { margin-top: .15rem; color: var(--text-secondary); text-transform: capitalize; }
-.status { display: inline-block; padding: .2rem .5rem; border-radius: 999px; font-weight: 700; }
-.status.pending { color: #a33d2d; background: #ffebe7; }
-.status.resolved { color: #24614f; background: #e5f4ec; }
-.history-state { padding: 2rem; text-align: center; color: var(--text-secondary); }
-.history-state.error { color: var(--color-alert-red); }
-@media (max-width: 600px) { .history-header { align-items: start; flex-direction: column; } }
+.table-wrap {
+  overflow-x: auto;
+  width: 100%;
+}
+
+.incidents-table {
+  width: 100%;
+  min-width: 850px;
+  border-collapse: collapse;
+  font-size: 0.8125rem;
+  text-align: left;
+}
+
+.incidents-table th {
+  padding: 0.85rem 1rem;
+  background-color: var(--bg-card-subtle, #F9F8F5);
+  color: var(--text-secondary, #5A706A);
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border-bottom: 1px solid var(--border-subtle, #E8E6DF);
+  white-space: nowrap;
+}
+
+.incidents-table td {
+  padding: 0.85rem 1rem;
+  border-bottom: 1px solid var(--border-subtle, #E8E6DF);
+  color: var(--text-secondary, #5A706A);
+  vertical-align: middle;
+}
+
+.incidents-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.incidents-table tbody tr:hover {
+  background-color: var(--bg-card-subtle, #F9F8F5);
+}
+
+.incidents-table td strong {
+  display: block;
+  font-weight: 600;
+  color: var(--text-main, #10312F);
+}
+
+.incidents-table td small {
+  display: block;
+  font-size: 0.75rem;
+  margin-top: 0.15rem;
+  color: var(--text-secondary, #5A706A);
+  text-transform: capitalize;
+}
+
+.type-cell {
+  text-transform: capitalize;
+  font-weight: 500;
+  color: var(--text-main, #10312F);
+}
+
+.date-cell {
+  white-space: nowrap;
+}
+
+.resolution-cell {
+  max-width: 320px;
+  line-height: 1.4;
+}
+
+.history-state {
+  padding: 3rem 2rem;
+  text-align: center;
+  color: var(--text-secondary, #5A706A);
+  background-color: var(--bg-card, #FFFFFF);
+  border: 1px solid var(--border-subtle, #E8E6DF);
+  border-radius: 12px;
+}
+
+.history-state.error {
+  color: var(--color-alert-red, #E05A46);
+  background-color: var(--color-alert-red-subtle, #FEF2F2);
+  border-color: var(--color-alert-red-border, #FECACA);
+}
+
+.p-button-outlined {
+  color: var(--color-brand-teal, #0F7A70);
+  border-color: var(--color-brand-teal, #0F7A70);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.p-button-outlined:hover {
+  background-color: var(--color-brand-mint-subtle, #EAF7EE);
+}
 </style>

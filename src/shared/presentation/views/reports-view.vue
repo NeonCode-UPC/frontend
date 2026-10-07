@@ -4,8 +4,15 @@ import BaseScreen from '../components/base-screen.vue';
 
 <template>
   <base-screen
-    title="Reportes"
-    bounded-context="Shared Kernel & Analytics"
-    search-placeholder="Filtrar reportes..."
-  />
+    breadcrumb="Reportes"
+    title="Reportes y analítica"
+    subtitle="Exportación consolidada de telemetría y traslados"
+    :fluid="true"
+  >
+    <empty-state
+      icon="pi pi-chart-bar"
+      title="Módulo de reportes analíticos"
+      message="Próximamente disponible para exportación en formatos PDF y Excel."
+    />
+  </base-screen>
 </template>

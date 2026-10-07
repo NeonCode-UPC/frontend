@@ -28,129 +28,110 @@ const plans = [
 
 <template>
   <base-screen
-      title="Suscripción"
-      bounded-context="Identity, Access & Subscriptions (IAM)"
-      search-placeholder="Filtrar por plan de suscripción..."
+    breadcrumb="IAM / Suscripción"
+    title="Suscripción institucional"
+    subtitle="Administración del plan activo y capacidad de usuarios"
+    :fluid="true"
   >
-    <div class="p-4">
+    <div class="subscription-content flex flex-column gap-4">
+      <!-- Resumen de organización y capacidad con KPI Cards -->
+      <div class="grid">
+        <div class="col-12 md:col-4">
+          <kpi-card
+            value="Clínica San Borja"
+            label="Organización"
+            icon="pi pi-building"
+            subtext="Institución de salud vinculada"
+          />
+        </div>
 
-      <div class="flex justify-content-between align-items-center mb-4">
-        <div>
-          <h2 class="m-0">Suscripción</h2>
-          <p class="text-color-secondary mt-2 mb-0">
-            Administración del plan y suscripción de la institución.
-          </p>
+        <div class="col-12 md:col-4">
+          <kpi-card
+            value="Plan Institucional"
+            label="Plan actual"
+            accent="teal"
+            icon="pi pi-shield"
+            subtext="Suscripción activa y vigente"
+          />
+        </div>
+
+        <div class="col-12 md:col-4">
+          <kpi-card
+            value="8 / 10"
+            label="Usuarios activos"
+            icon="pi pi-users"
+            subtext="Capacidad de usuarios del plan"
+          />
         </div>
       </div>
 
-      <div class="grid mb-4">
-
-        <div class="col-12 md:col-4">
-          <div class="surface-card border-round p-4 shadow-1">
-            <div class="text-color-secondary">
-              Plan actual
-            </div>
-
-            <div class="text-xl font-bold mt-2">
-              Plan Institucional
-            </div>
-
-            <pv-tag
-                value="Activo"
-                severity="success"
-                class="mt-2"
-            />
-          </div>
-        </div>
-
-        <div class="col-12 md:col-4">
-          <div class="surface-card border-round p-4 shadow-1">
-            <div class="text-color-secondary">
-              Usuarios incluidos
-            </div>
-
-            <div class="text-2xl font-bold mt-2">
-              10
-            </div>
-
-            <small class="text-color-secondary">
-              Usuarios permitidos por el plan
-            </small>
-          </div>
-        </div>
-
-        <div class="col-12 md:col-4">
-          <div class="surface-card border-round p-4 shadow-1">
-            <div class="text-color-secondary">
-              Estado
-            </div>
-
-            <div class="text-xl font-bold mt-2">
-              Suscripción activa
-            </div>
-
-            <small class="text-color-secondary">
-              Renovación automática habilitada
-            </small>
-          </div>
-        </div>
-
-      </div>
-
-      <div class="surface-card border-round p-4 shadow-1">
-
-        <div class="flex justify-content-between align-items-center mb-4">
-          <div>
-            <h3 class="m-0">Planes disponibles</h3>
-            <p class="text-color-secondary mt-2 mb-0">
-              Selecciona el plan que mejor se adapte a tu institución.
-            </p>
-          </div>
-        </div>
-
+      <!-- Catálogo de planes institucionales -->
+      <content-card
+        title="Planes disponibles"
+        subtitle="Selecciona el plan que mejor se adapte a tu institución."
+      >
         <div class="grid">
-
           <div
-              v-for="plan in plans"
-              :key="plan.name"
-              class="col-12 md:col-4"
+            v-for="plan in plans"
+            :key="plan.name"
+            class="col-12 md:col-4"
           >
-            <div class="surface-ground border-round p-4 h-full">
+            <content-card
+              :title="plan.name"
+              class="h-full plan-card"
+              :class="{ 'active-plan-card': plan.status === 'Activo' }"
+            >
+              <template #header-actions>
+                <status-badge :status="plan.status" />
+              </template>
 
-              <div class="flex justify-content-between align-items-start">
-                <h3 class="m-0">{{ plan.name }}</h3>
+              <div class="plan-body flex flex-column justify-content-between h-full">
+                <div>
+                  <p class="plan-description text-xs text-muted mt-0 mb-3 line-height-3">
+                    {{ plan.description }}
+                  </p>
 
-                <pv-tag
-                    :value="plan.status"
-                    :severity="plan.status === 'Activo' ? 'success' : 'info'"
-                />
-              </div>
+                  <div class="plan-price text-2xl font-bold text-main mb-2">
+                    {{ plan.price }}
+                  </div>
 
-              <p class="text-color-secondary">
-                {{ plan.description }}
-              </p>
+                  <div class="plan-users text-xs text-muted mb-4 flex align-items-center gap-2">
+                    <i class="pi pi-users text-sm"></i>
+                    <span>{{ plan.users }}</span>
+                  </div>
+                </div>
 
-              <div class="text-xl font-bold mb-2">
-                {{ plan.price }}
-              </div>
-
-              <div class="text-color-secondary mb-3">
-                {{ plan.users }}
-              </div>
-
-              <pv-button
+                <pv-button
                   :label="plan.status === 'Activo' ? 'Plan actual' : 'Seleccionar plan'"
                   :disabled="plan.status === 'Activo'"
                   class="w-full"
-              />
-
-            </div>
+                />
+              </div>
+            </content-card>
           </div>
-
         </div>
-
-      </div>
-
+      </content-card>
     </div>
   </base-screen>
 </template>
+
+<style scoped>
+.subscription-content {
+  width: 100%;
+}
+
+.plan-card {
+  border: 1px solid var(--border-subtle, #E8E6DF);
+  background-color: var(--bg-card, #FFFFFF);
+  transition: all 0.2s ease-in-out;
+}
+
+.plan-card.active-plan-card {
+  border: 2px solid var(--color-brand-teal, #0F7A70);
+  background-color: var(--bg-card, #FFFFFF);
+}
+
+.plan-price {
+  letter-spacing: -0.02em;
+}
+</style>

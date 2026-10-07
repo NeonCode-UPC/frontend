@@ -34,10 +34,11 @@ const detectedTime = computed(() => new Intl.DateTimeFormat('es-PE', {
     <div class="flex justify-content-between align-items-start gap-3">
       <div>
         <div class="flex align-items-center flex-wrap gap-2 mb-2">
+          <status-badge :status="incident.status" />
           <span class="severity-badge">{{ severityLabel }}</span>
           <span class="incident-code">{{ incident.code }}</span>
         </div>
-        <h3 class="text-lg">{{ typeLabel }}</h3>
+        <h3 class="incident-title text-base md:text-lg font-bold text-main m-0">{{ typeLabel }}</h3>
         <p class="description">{{ incident.description }}</p>
       </div>
       <i class="pi pi-exclamation-triangle alert-icon"></i>
@@ -51,7 +52,7 @@ const detectedTime = computed(() => new Intl.DateTimeFormat('es-PE', {
     </div>
 
     <div v-if="incident.triggersPreArrivalNotice" class="hospital-notice">
-      <i class="pi pi-building"></i>
+      <i class="pi pi-building text-base"></i>
       <div>
         <strong>Aviso pre-arribo activado</strong>
         <span>{{ incident.hospital }} · ETA {{ incident.etaMinutes }} min</span>
@@ -66,7 +67,7 @@ const detectedTime = computed(() => new Intl.DateTimeFormat('es-PE', {
         @click="emit('acknowledge', incident.id)"
       >
         <i class="pi pi-check"></i>
-        Acusar recibo
+        <span>Acusar recibo</span>
       </button>
       <span v-else class="acknowledged-label">
         <i class="pi pi-check-circle"></i> Alerta reconocida
@@ -80,67 +81,178 @@ const detectedTime = computed(() => new Intl.DateTimeFormat('es-PE', {
 
 <style scoped>
 .incident-card {
-  background: #fff;
-  border: 1px solid var(--border-subtle);
-  border-left: 5px solid var(--color-alert-amber);
-  border-radius: 14px;
-  padding: 1.1rem;
-  box-shadow: 0 4px 14px rgba(16, 49, 47, 0.06);
+  background: #FFFFFF;
+  border: 1px solid var(--border-subtle, #E8E6DF);
+  border-left: 4px solid var(--color-alert-amber, #E89332);
+  border-radius: 12px;
+  padding: 1.25rem;
+  box-shadow: 0 1px 3px rgba(16, 49, 47, 0.04);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  transition: all 0.2s ease-in-out;
 }
 
-.severity-critical { border-left-color: var(--color-alert-red); }
-.severity-high { border-left-color: var(--color-alert-amber); }
-.severity-medium { border-left-color: #d3b735; }
+.incident-card:hover {
+  box-shadow: 0 4px 12px rgba(16, 49, 47, 0.08);
+}
+
+.severity-critical { border-left-color: var(--color-alert-red, #E05A46); }
+.severity-high { border-left-color: var(--color-alert-amber, #E89332); }
+.severity-medium { border-left-color: #D97706; }
 
 .severity-badge {
-  padding: .2rem .55rem;
-  border-radius: 999px;
-  color: #fff;
-  background: var(--color-alert-red);
-  font-size: .68rem;
-  font-weight: 800;
+  padding: 0.2rem 0.55rem;
+  border-radius: 9999px;
+  color: #FFFFFF;
+  background: var(--color-alert-red, #E05A46);
+  font-size: 0.6875rem;
+  font-weight: 700;
   text-transform: uppercase;
+  letter-spacing: 0.02em;
 }
 
-.severity-high .severity-badge { background: var(--color-alert-amber); }
-.severity-medium .severity-badge { background: #a68d18; }
-.incident-code { color: var(--text-secondary); font: 700 .72rem monospace; }
-.alert-icon { color: var(--color-alert-red); font-size: 1.35rem; }
-.description { color: var(--text-secondary); font-size: .82rem; margin: .45rem 0 1rem; }
+.severity-high .severity-badge { background: var(--color-alert-amber, #E89332); }
+.severity-medium .severity-badge { background: #D97706; }
+
+.incident-code {
+  color: var(--text-secondary, #5A706A);
+  font: 700 0.75rem monospace;
+}
+
+.alert-icon {
+  color: var(--color-alert-red, #E05A46);
+  font-size: 1.25rem;
+  flex-shrink: 0;
+}
+
+.description {
+  color: var(--text-secondary, #5A706A);
+  font-size: 0.8125rem;
+  margin: 0.5rem 0 1rem;
+  line-height: 1.4;
+}
 
 .incident-metadata {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: .65rem;
-  padding: .8rem;
+  gap: 0.75rem;
+  padding: 0.85rem 1rem;
   border-radius: 10px;
-  background: #f7f8f4;
+  background: var(--bg-card-subtle, #F9F8F5);
+  border: 1px solid var(--border-subtle, #E8E6DF);
 }
-.incident-metadata div { display: flex; flex-direction: column; gap: .1rem; }
-.incident-metadata span { color: var(--text-secondary); font-size: .66rem; text-transform: uppercase; }
-.incident-metadata strong { font-size: .77rem; color: var(--text-main); }
+
+.incident-metadata div {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.incident-metadata span {
+  color: var(--text-muted, #8C9E99);
+  font-size: 0.6875rem;
+  text-transform: uppercase;
+  font-weight: 500;
+  letter-spacing: 0.03em;
+}
+
+.incident-metadata strong {
+  font-size: 0.8125rem;
+  color: var(--text-main, #10312F);
+  font-weight: 600;
+}
 
 .hospital-notice {
   display: flex;
-  gap: .65rem;
-  margin-top: .8rem;
-  padding: .75rem;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 0.85rem;
+  padding: 0.75rem 1rem;
   border-radius: 10px;
-  color: #24513b;
-  background: #eaf5df;
-  font-size: .75rem;
+  color: var(--color-brand-dark, #10312F);
+  background: var(--color-brand-mint-subtle, #EAF7EE);
+  border: 1px solid var(--color-brand-mint, #B9DDA0);
+  font-size: 0.75rem;
 }
-.hospital-notice div { display: flex; flex-direction: column; }
 
-.actions { display: flex; align-items: center; justify-content: space-between; gap: .7rem; margin-top: 1rem; }
-.action-button { border: 0; border-radius: 999px; padding: .55rem .8rem; cursor: pointer; font-size: .73rem; font-weight: 700; }
-.acknowledge-button { background: #e9f2ee; color: var(--color-brand-teal); }
-.resolve-button { background: var(--color-brand-dark); color: #fff; margin-left: auto; }
-.acknowledged-label { color: var(--color-brand-teal); font-size: .72rem; font-weight: 700; }
+.hospital-notice div {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.hospital-notice strong {
+  font-weight: 600;
+  color: var(--color-brand-dark, #10312F);
+}
+
+.hospital-notice span {
+  color: var(--text-secondary, #5A706A);
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-top: 1rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--border-subtle, #E8E6DF);
+}
+
+.action-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  border: 1px solid transparent;
+  border-radius: 9999px;
+  padding: 0.45rem 0.9rem;
+  cursor: pointer;
+  font-size: 0.75rem;
+  font-weight: 600;
+  transition: all 0.15s ease;
+}
+
+.acknowledge-button {
+  background: var(--color-brand-mint-subtle, #EAF7EE);
+  color: var(--color-brand-teal, #0F7A70);
+  border-color: var(--color-brand-mint, #B9DDA0);
+}
+
+.acknowledge-button:hover {
+  background: #DCFCE7;
+}
+
+.resolve-button {
+  background: var(--color-brand-teal, #0F7A70);
+  color: #FFFFFF;
+  margin-left: auto;
+}
+
+.resolve-button:hover {
+  background: var(--color-brand-teal-hover, #0B6258);
+}
+
+.acknowledged-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: var(--color-brand-teal, #0F7A70);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
 
 @media (max-width: 560px) {
-  .incident-metadata { grid-template-columns: 1fr; }
-  .actions { align-items: stretch; flex-direction: column; }
-  .resolve-button { margin-left: 0; }
+  .incident-metadata {
+    grid-template-columns: 1fr;
+  }
+  .actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .resolve-button {
+    margin-left: 0;
+  }
 }
 </style>

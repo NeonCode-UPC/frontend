@@ -1,18 +1,39 @@
 :root {
+  /* Identidad de Marca Médica */
   --color-brand-dark: #10312F;
   --color-brand-teal: #0F7A70;
+  --color-brand-teal-hover: #0B6258;
   --color-brand-mint: #B9DDA0;
-  --color-alert-red: #E05A46;
-  --color-alert-amber: #E89332;
+  --color-brand-mint-subtle: #EAF7EE;
 
+  /* Estados de Alerta y Telemetría Clínica */
+  --color-alert-red: #E05A46;
+  --color-alert-red-subtle: #FEF2F2;
+  --color-alert-red-border: #FECACA;
+  --color-alert-amber: #E89332;
+  --color-alert-amber-subtle: #FFFBEB;
+  --color-info-blue: #1E40AF;
+  --color-info-blue-subtle: #EFF6FF;
+
+  /* Lienzo y Superficies */
   --bg-app: #F6F5EF;
   --bg-card: #FFFFFF;
+  --bg-card-subtle: #F9F8F5;
   --border-subtle: #E8E6DF;
+  --border-hover: #0F7A70;
 
+  /* Jerarquía de Texto */
   --text-main: #10312F;
   --text-secondary: #5A706A;
+  --text-muted: #8C9E99;
+  --text-inverse: #FFFFFF;
+
+  /* Sidebar */
+  --bg-sidebar: #10312F;
   --text-sidebar-category: #5A7C75;
   --text-sidebar-item: #B8CBC6;
+  --text-sidebar-active: #B9DDA0;
+  --bg-sidebar-active-pill: rgba(185, 221, 160, 0.12);
 
   font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   line-height: 1.5;
@@ -61,8 +82,26 @@ a {
   background-color: var(--bg-app) !important;
 }
 
+.bg-card {
+  background-color: var(--bg-card) !important;
+}
+
 .screen-card {
   background-color: var(--bg-card);
   border: 1px solid var(--border-subtle);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(16, 49, 47, 0.04);
+}
+
+.screen-card-interactive {
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(16, 49, 47, 0.04);
+  transition: all 0.2s ease-in-out;
+}
+
+.screen-card-interactive:hover {
+  border-color: var(--border-hover);
+  box-shadow: 0 4px 12px rgba(16, 49, 47, 0.08);
 }

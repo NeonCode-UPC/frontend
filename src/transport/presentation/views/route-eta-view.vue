@@ -44,158 +44,100 @@ const routes = ref([
 
 <template>
   <base-screen
-      title="Ruta y ETA"
-      bounded-context="Medical Transport Planning & Dispatching"
-      search-placeholder="Filtrar por ruta o tiempo estimado..."
+    breadcrumb="Transporte"
+    title="Rutas en operación"
+    subtitle="Recorrido operativo y tiempo estimado de llegada (ETA)"
+    :fluid="true"
   >
-    <div class="route-content">
-      <div class="route-header">
-        <div>
-          <h1>Rutas en operación</h1>
-          <p>
-            Consulta el recorrido operativo y el tiempo estimado de llegada
-            de los traslados activos.
-          </p>
-        </div>
-      </div>
+    <template #actions>
+      <pv-tag :value="`${routes.length} rutas activas`" severity="info" class="border-round-pill px-3 py-1 text-xs font-semibold" />
+    </template>
 
-      <div class="route-list">
-        <article
-            v-for="route in routes"
-            :key="route.tripId"
-            class="route-card"
-        >
+    <div class="route-grid">
+      <content-card
+        v-for="route in routes"
+        :key="route.tripId"
+        class="route-card"
+      >
+        <template #header>
           <div class="route-card-header">
-            <div>
-              <span class="route-trip">
-                Viaje #{{ route.tripId }}
-              </span>
-
-              <h2>
-                Orden de traslado #{{ route.orderId }}
-              </h2>
-            </div>
-
-            <span
-                class="route-status"
-                :class="{
-                assigned: route.status === 'Asignado',
-                transit: route.status === 'En tránsito'
-              }"
-            >
-              {{ route.status }}
-            </span>
+            <span class="route-trip">Viaje #{{ route.tripId }}</span>
+            <h3 class="route-order">Orden de traslado #{{ route.orderId }}</h3>
           </div>
+        </template>
 
-          <div class="route-path">
-            <div class="route-point">
-              <span class="point-marker origin"></span>
+        <template #header-actions>
+          <status-badge :status="route.status" />
+        </template>
 
-              <div>
-                <small>Origen</small>
-                <strong>{{ route.origin }}</strong>
-              </div>
-            </div>
-
-            <div class="route-line"></div>
-
-            <div class="route-point">
-              <span class="point-marker destination"></span>
-
-              <div>
-                <small>Destino</small>
-                <strong>{{ route.destination }}</strong>
-              </div>
+        <div class="route-path">
+          <div class="route-point">
+            <span class="point-marker origin"></span>
+            <div class="point-details">
+              <span class="point-label">Origen</span>
+              <strong class="point-name">{{ route.origin }}</strong>
             </div>
           </div>
 
-          <div class="route-footer">
-            <div class="ambulance-info">
-              <span>Ambulancia</span>
-              <strong>{{ route.ambulance }}</strong>
-            </div>
+          <div class="route-line-connector">
+            <span class="route-line"></span>
+          </div>
 
-            <div class="eta-info">
-              <span>ETA</span>
-              <strong>{{ route.eta }} min</strong>
+          <div class="route-point">
+            <span class="point-marker destination"></span>
+            <div class="point-details">
+              <span class="point-label">Destino</span>
+              <strong class="point-name">{{ route.destination }}</strong>
             </div>
           </div>
-        </article>
-      </div>
+        </div>
+
+        <div class="route-footer">
+          <div class="ambulance-info">
+            <span class="footer-label">Ambulancia</span>
+            <strong class="footer-value font-mono">{{ route.ambulance }}</strong>
+          </div>
+
+          <div class="eta-info">
+            <span class="footer-label">ETA</span>
+            <strong class="eta-value">{{ route.eta }} min</strong>
+          </div>
+        </div>
+      </content-card>
     </div>
   </base-screen>
 </template>
 
 <style scoped>
-.route-content {
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-}
-
-.route-header h1 {
-  margin: 0;
-  color: #10312f;
-  font-size: 1.25rem;
-  font-weight: 700;
-}
-
-.route-header p {
-  margin: 0.35rem 0 0;
-  color: #64748b;
-  font-size: 0.875rem;
-}
-
-.route-list {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
+.route-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1.25rem;
 }
 
 .route-card {
-  padding: 1rem 1.25rem;
-  background: #ffffff;
-  border: 1px solid #e2e8f0;
-  border-radius: 12px;
+  border: 1px solid var(--border-subtle, #E8E6DF);
 }
 
 .route-card-header {
   display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 1rem;
+  flex-direction: column;
+  gap: 0.25rem;
 }
 
 .route-trip {
-  display: block;
-  margin-bottom: 0.25rem;
-  color: #64748b;
-  font-size: 0.7rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--text-muted, #8C9E99);
+  letter-spacing: 0.02em;
 }
 
-.route-card h2 {
+.route-order {
   margin: 0;
-  color: #10312f;
-  font-size: 0.95rem;
+  color: var(--text-main, #10312F);
+  font-size: 1.05rem;
   font-weight: 700;
-}
-
-.route-status {
-  padding: 0.3rem 0.6rem;
-  border-radius: 999px;
-  font-size: 0.65rem;
-  font-weight: 600;
-  white-space: nowrap;
-}
-
-.route-status.assigned {
-  background: #fef3c7;
-  color: #92400e;
-}
-
-.route-status.transit {
-  background: #dbeafe;
-  color: #1e40af;
+  letter-spacing: -0.01em;
 }
 
 .route-path {
@@ -214,39 +156,49 @@ const routes = ref([
   width: 10px;
   height: 10px;
   flex: 0 0 10px;
-  margin-top: 0.3rem;
+  margin-top: 0.35rem;
   border-radius: 50%;
 }
 
 .point-marker.origin {
-  background: #0f7a70;
+  background: var(--color-brand-teal, #0F7A70);
+  box-shadow: 0 0 0 3px rgba(15, 122, 112, 0.15);
 }
 
 .point-marker.destination {
-  background: #e05a46;
+  background: var(--color-alert-red, #E05A46);
+  box-shadow: 0 0 0 3px rgba(224, 90, 70, 0.15);
 }
 
-.route-point div {
+.point-details {
   display: flex;
   flex-direction: column;
   gap: 0.2rem;
 }
 
-.route-point small {
-  color: #64748b;
-  font-size: 0.7rem;
+.point-label {
+  font-size: 0.75rem;
+  color: var(--text-secondary, #5A706A);
+  font-weight: 500;
 }
 
-.route-point strong {
-  color: #10312f;
-  font-size: 0.8rem;
+.point-name {
+  font-size: 0.875rem;
+  color: var(--text-main, #10312F);
+  font-weight: 600;
+}
+
+.route-line-connector {
+  padding-left: 4px;
+  margin: 2px 0;
 }
 
 .route-line {
+  display: block;
   width: 2px;
   height: 24px;
-  margin: 2px 0 2px 4px;
-  background: #e2e8f0;
+  background: var(--border-subtle, #E8E6DF);
+  border-radius: 1px;
 }
 
 .route-footer {
@@ -255,7 +207,7 @@ const routes = ref([
   justify-content: space-between;
   gap: 1rem;
   padding-top: 0.85rem;
-  border-top: 1px solid #e2e8f0;
+  border-top: 1px solid var(--border-subtle, #E8E6DF);
 }
 
 .ambulance-info,
@@ -265,34 +217,31 @@ const routes = ref([
   gap: 0.2rem;
 }
 
-.ambulance-info span,
-.eta-info span {
-  color: #64748b;
-  font-size: 0.7rem;
+.footer-label {
+  font-size: 0.75rem;
+  color: var(--text-secondary, #5A706A);
+  font-weight: 500;
 }
 
-.ambulance-info strong {
-  color: #10312f;
-  font-size: 0.8rem;
+.footer-value {
+  font-size: 0.875rem;
+  color: var(--text-main, #10312F);
+  font-weight: 600;
 }
 
 .eta-info {
   align-items: flex-end;
 }
 
-.eta-info strong {
-  color: #0f7a70;
-  font-size: 1rem;
+.eta-value {
+  color: var(--color-brand-teal, #0F7A70);
+  font-size: 1.125rem;
   font-weight: 700;
 }
 
-@media (max-width: 650px) {
-  .route-card-header {
-    flex-direction: column;
-  }
-
-  .route-footer {
-    align-items: flex-start;
+@media (max-width: 900px) {
+  .route-grid {
+    grid-template-columns: 1fr;
   }
 }
 </style>

@@ -4,36 +4,43 @@ import BaseScreen from '../components/base-screen.vue';
 
 <template>
   <base-screen
-    title="Panel"
-    bounded-context="Centro de Operaciones Medical SMARTBOX"
-    search-placeholder="Filtrar por ruta, estado o SmartBox..."
+    breadcrumb="Operaciones"
+    title="Dashboard general"
+    subtitle="Centro de Operaciones Medical SMARTBOX · Lima Metropolitana"
+    :fluid="true"
   >
     <template #default="{ searchQuery }">
       <!-- 4 Top KPI Cards from design -->
       <div class="grid">
         <div class="col-12 sm:col-6 lg:col-3">
-          <div class="screen-card border-round-xl p-3">
-            <span class="text-2xl font-bold text-main block">18</span>
-            <span class="text-xs text-muted block mt-1">Transportes activos</span>
-          </div>
+          <kpi-card
+            value="18"
+            label="Transportes activos"
+            icon="pi pi-truck"
+          />
         </div>
         <div class="col-12 sm:col-6 lg:col-3">
-          <div class="screen-card border-round-xl p-3" style="border-top: 3px solid #0F7A70;">
-            <span class="text-2xl font-bold text-main block">11 / 12</span>
-            <span class="text-xs text-muted block mt-1">SmartBox en línea</span>
-          </div>
+          <kpi-card
+            value="11 / 12"
+            label="SmartBox en línea"
+            accent="teal"
+            icon="pi pi-box"
+          />
         </div>
         <div class="col-12 sm:col-6 lg:col-3">
-          <div class="screen-card border-round-xl p-3" style="border-top: 3px solid #E05A46;">
-            <span class="text-2xl font-bold text-main block">2</span>
-            <span class="text-xs text-muted block mt-1">Alertas activas</span>
-          </div>
+          <kpi-card
+            value="2"
+            label="Alertas activas"
+            accent="red"
+            icon="pi pi-bell"
+          />
         </div>
         <div class="col-12 sm:col-6 lg:col-3">
-          <div class="screen-card border-round-xl p-3">
-            <span class="text-2xl font-bold text-main block">14:35</span>
-            <span class="text-xs text-muted block mt-1">Próxima llegada</span>
-          </div>
+          <kpi-card
+            value="14:35"
+            label="Próxima llegada"
+            icon="pi pi-clock"
+          />
         </div>
       </div>
     </template>

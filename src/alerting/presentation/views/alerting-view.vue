@@ -47,30 +47,63 @@ async function confirmResolution() {
 
 <template>
   <base-screen
-    title="Alertas críticas"
-    bounded-context="Critical Alerting & Incident Response"
+    breadcrumb="Alertas"
+    title="Centro de alertas críticas"
+    subtitle="Despacho menor a 10s vía Push y SMS · 4 indicadores activos"
+    :fluid="true"
     search-placeholder="Filtrar por código, SmartBox u orden..."
   >
+    <template #actions>
+      <router-link to="/alerting/incidents" class="p-button p-button-outlined p-button-sm border-round-pill">
+        Ver historial
+      </router-link>
+    </template>
+
     <template #default="{ searchQuery }">
       <div class="dashboard">
-        <section class="summary-grid">
-          <div class="summary-card danger"><span>Incidentes activos</span><strong>{{ store.activeIncidents.length }}</strong></div>
-          <div class="summary-card"><span>Severidad crítica</span><strong>{{ criticalCount }}</strong></div>
-          <div class="summary-card"><span>Acuses pendientes</span><strong>{{ store.pendingAcknowledgements }}</strong></div>
-          <div class="summary-card success"><span>Avisos pre-arribo</span><strong>{{ preArrivalCount }}</strong></div>
+        <section class="grid mb-2">
+          <div class="col-12 sm:col-6 lg:col-3">
+            <kpi-card
+              :value="store.summary?.activeAlerts ?? store.activeIncidents.length"
+              label="Alertas activas"
+              accent="red"
+            />
+          </div>
+          <div class="col-12 sm:col-6 lg:col-3">
+            <kpi-card
+              :value="store.summary?.unacknowledgedAlerts ?? store.pendingAcknowledgements"
+              label="Sin acuse de recibo"
+              accent="amber"
+            />
+          </div>
+          <div class="col-12 sm:col-6 lg:col-3">
+            <kpi-card
+              :value="store.summary?.averageResponseTime ?? '< 2 min'"
+              label="Tiempo medio de respuesta"
+              accent="teal"
+            />
+          </div>
+          <div class="col-12 sm:col-6 lg:col-3">
+            <kpi-card
+              :value="store.summary?.dispatchedPush ?? preArrivalCount"
+              label="Notificaciones enviadas"
+              accent="mint"
+            />
+          </div>
         </section>
 
-        <div class="section-heading">
-          <div>
-            <h2>Centro de respuesta inmediata</h2>
-            <p>Confirma cada alerta en menos de 2 minutos y coordina el plan de contingencia.</p>
-          </div>
-          <router-link to="/alerting/incidents" class="history-link">Ver historial <i class="pi pi-arrow-right"></i></router-link>
+        <div v-if="store.loading" class="state-message">
+          <i class="pi pi-spin pi-spinner mr-2"></i> Cargando alertas...
         </div>
-
-        <div v-if="store.loading" class="state-message"><i class="pi pi-spin pi-spinner"></i> Cargando alertas...</div>
-        <div v-else-if="store.error" class="state-message error-message">{{ store.error }}</div>
-        <div v-else-if="!store.activeIncidents.length" class="state-message safe-message"><i class="pi pi-check-circle"></i> No hay incidentes activos.</div>
+        <div v-else-if="store.error" class="state-message error-message">
+          {{ store.error }}
+        </div>
+        <empty-state
+          v-else-if="!store.activeIncidents.length"
+          icon="pi pi-check-circle"
+          title="No hay incidentes activos"
+          message="Todos los contenedores se encuentran operando bajo parámetros normales."
+        />
         <div v-else class="incident-grid">
           <incident-card
             v-for="incident in store.activeIncidents.filter(item => !searchQuery || [item.code, item.containerId, item.transportOrder, item.description].join(' ').toLowerCase().includes(searchQuery.toLowerCase()))"
@@ -95,21 +128,53 @@ async function confirmResolution() {
 </template>
 
 <style scoped>
-.dashboard { display: flex; flex-direction: column; gap: 1.25rem; }
-.summary-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .75rem; }
-.summary-card { display: flex; flex-direction: column; gap: .25rem; padding: .9rem 1rem; border: 1px solid #e5e5dc; border-radius: 12px; background: #f8f8f4; }
-.summary-card span { color: var(--text-secondary); font-size: .7rem; }
-.summary-card strong { font-size: 1.65rem; color: var(--color-brand-dark); }
-.summary-card.danger strong { color: var(--color-alert-red); }
-.summary-card.success strong { color: var(--color-brand-teal); }
-.section-heading { display: flex; align-items: end; justify-content: space-between; gap: 1rem; }
-.section-heading h2 { font-size: 1rem; }
-.section-heading p, .dialog-copy { margin: .2rem 0 0; color: var(--text-secondary); font-size: .76rem; }
-.history-link { color: var(--color-brand-teal); font-size: .75rem; font-weight: 700; white-space: nowrap; }
-.incident-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
-.state-message { padding: 2rem; text-align: center; color: var(--text-secondary); border: 1px dashed var(--border-subtle); border-radius: 12px; }
-.error-message { color: var(--color-alert-red); background: #fff5f3; }
-.safe-message { color: var(--color-brand-teal); background: #f2f8ee; }
-@media (max-width: 980px) { .summary-grid { grid-template-columns: repeat(2, 1fr); } .incident-grid { grid-template-columns: 1fr; } }
-@media (max-width: 520px) { .summary-grid { grid-template-columns: 1fr; } .section-heading { align-items: start; flex-direction: column; } }
+.dashboard {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.incident-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.dialog-copy {
+  margin: 0.2rem 0 1rem;
+  color: var(--text-secondary);
+  font-size: 0.8125rem;
+}
+
+.state-message {
+  padding: 3rem 2rem;
+  text-align: center;
+  color: var(--text-secondary);
+  background: var(--bg-card, #FFFFFF);
+  border: 1px solid var(--border-subtle, #E8E6DF);
+  border-radius: 12px;
+}
+
+.error-message {
+  color: var(--color-alert-red, #E05A46);
+  background: var(--color-alert-red-subtle, #FEF2F2);
+  border-color: var(--color-alert-red-border, #FECACA);
+}
+
+.p-button-outlined {
+  color: var(--color-brand-teal, #0F7A70);
+  border-color: var(--color-brand-teal, #0F7A70);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.p-button-outlined:hover {
+  background-color: var(--color-brand-mint-subtle, #EAF7EE);
+}
+
+@media (max-width: 980px) {
+  .incident-grid {
+    grid-template-columns: 1fr;
+  }
+}
 </style>

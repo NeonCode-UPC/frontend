@@ -37,10 +37,20 @@ import {
 } from "primevue";
 import router from "./router.js";
 import pinia from "./pinia.js";
+import BaseScreen from './shared/presentation/components/base-screen.vue';
+import KpiCard from './shared/presentation/components/kpi-card.vue';
+import ContentCard from './shared/presentation/components/content-card.vue';
+import StatusBadge from './shared/presentation/components/status-badge.vue';
+import EmptyState from './shared/presentation/components/empty-state.vue';
 
 const primeUiLicenseKey = import.meta.env.VITE_PRIME_UI_LICENSE_KEY;
 
 createApp(App)
+    .component('base-screen',       BaseScreen)
+    .component('kpi-card',          KpiCard)
+    .component('content-card',      ContentCard)
+    .component('status-badge',      StatusBadge)
+    .component('empty-state',       EmptyState)
     .use(i18n)
     .use(PrimeVue, { theme: { preset: Material }, ripple: true, license: primeUiLicenseKey })
     .use(ConfirmationService)
