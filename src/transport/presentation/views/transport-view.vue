@@ -58,42 +58,11 @@ const dispatchTrips = ref([
 
 <template>
   <base-screen
-      title="Traslados"
-      bounded-context="Medical Transport Planning & Dispatching"
-      search-placeholder="Filtrar por orden, estado o destino..."
+    breadcrumb="Transporte"
+    title="Despacho de vehículos"
+    subtitle="Gestión de traslados y asignación de ambulancias en tiempo real"
+    :fluid="true"
   >
-    <div class="transport-content">
-      <div class="transport-header">
-        <div>
-          <h1>Despacho de vehículos</h1>
-          <p>
-            Gestiona los traslados y el estado operativo de las ambulancias.
-          </p>
-        </div>
-      </div>
-
-      <dispatch-board :dispatch-trips="dispatchTrips" />
-    </div>
+    <dispatch-board :dispatch-trips="dispatchTrips" />
   </base-screen>
 </template>
-
-<style scoped>
-.transport-content {
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-}
-
-.transport-header h1 {
-  margin: 0;
-  color: #10312f;
-  font-size: 1.25rem;
-  font-weight: 700;
-}
-
-.transport-header p {
-  margin: 0.35rem 0 0;
-  color: #64748b;
-  font-size: 0.875rem;
-}
-</style>

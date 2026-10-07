@@ -26,30 +26,88 @@ const receivedTime = (transfer) => transfer.receivedAt?.split('·')[1]?.trim() |
 </script>
 
 <template>
-  <section class="custody-page">
-    <header class="screen-title"><span class="breadcrumb">Cadena de custodia</span><h1>Cadena de custodia</h1><p>Estado del sellado por traslado</p></header>
-    <label class="mobile-search"><i class="pi pi-search"></i><input v-model="searchQuery" type="search" placeholder="Filtrar por código de custodia" /></label>
-    <p v-if="store.error" class="inline-notice"><i class="pi pi-info-circle"></i>{{ store.error }} <button type="button" @click="store.load()">Reintentar</button></p>
+  <base-screen
+    breadcrumb="Custodia"
+    title="Cadena de custodia"
+    subtitle="Estado del sellado y trazabilidad digital por traslado"
+    search-placeholder="Filtrar por código de custodia..."
+    :fluid="true"
+  >
+    <div class="custody-page">
+      <p v-if="store.error" class="inline-notice">
+        <i class="pi pi-info-circle"></i>{{ store.error }}
+        <button type="button" @click="store.load()">Reintentar</button>
+      </p>
 
-    <section class="table-panel" aria-label="Traslados y estado de custodia">
-      <div v-if="store.loading" class="empty-state">Cargando traslados…</div>
-      <div v-else-if="!filteredTransfers.length" class="empty-state">No hay traslados que coincidan con la búsqueda.</div>
-      <div v-else class="table-scroll"><table class="custody-table"><thead><tr><th>Traslado</th><th>Salida</th><th>Recepción</th><th>Responsable</th><th>Estado</th></tr></thead><tbody>
-        <tr v-for="transfer in filteredTransfers" :key="transfer.id" :class="{ selected: selectedId === transfer.id }" tabindex="0" @click="openTransfer(transfer.id)" @keydown.enter="openTransfer(transfer.id)">
-          <td data-label="Traslado"><strong>{{ transfer.id }}</strong></td>
-          <td data-label="Salida">{{ transfer.departureAt.split('·')[1]?.trim() }}</td>
-          <td data-label="Recepción">{{ receivedTime(transfer) }}</td>
-          <td data-label="Responsable">{{ transfer.recipient || '—' }}</td>
-          <td data-label="Estado"><span class="status-badge" :class="transfer.status">{{ statusLabel(transfer.status) }}</span></td>
-        </tr>
-      </tbody></table></div>
-    </section>
+      <app-data-table
+        :value="filteredTransfers"
+        :loading="store.loading"
+        min-width="45rem"
+        empty-title="No hay traslados que coincidan con la búsqueda"
+        empty-message="Intenta con otro código de seguimiento o filtro."
+        @row-click="event => openTransfer(event.data.id)"
+      >
+        <pv-column field="id" header="TRASLADO">
+          <template #body="{ data }">
+            <strong class="text-main cursor-pointer">{{ data.id }}</strong>
+          </template>
+        </pv-column>
 
-    <section v-if="route.query.transfer && selectedTransfer" class="timeline-panel">
-      <header class="timeline-heading"><div><h2>{{ selectedTransfer.id }} · {{ selectedTransfer.route }}</h2><p>{{ selectedTransfer.cargo }} · {{ selectedTransfer.smartBox }}</p></div><span class="status-badge" :class="selectedTransfer.status">{{ statusLabel(selectedTransfer.status) }}</span></header>
-      <ol class="timeline"><li v-for="event in selectedTransfer.events" :key="`${event.date}-${event.time}`" :class="event.type"><span class="timeline-dot"></span><div><strong>{{ event.title }}</strong><p>{{ event.detail }}</p><small>{{ event.date }} · {{ event.time }}</small></div></li></ol>
-    </section>
-  </section>
+        <pv-column field="departureAt" header="SALIDA">
+          <template #body="{ data }">
+            <span class="text-secondary text-sm">{{ data.departureAt?.split('·')[1]?.trim() }}</span>
+          </template>
+        </pv-column>
+
+        <pv-column field="receivedAt" header="RECEPCIÓN">
+          <template #body="{ data }">
+            <span class="text-secondary text-sm">{{ receivedTime(data) }}</span>
+          </template>
+        </pv-column>
+
+        <pv-column field="recipient" header="RESPONSABLE">
+          <template #body="{ data }">
+            <span class="text-secondary text-sm">{{ data.recipient || '—' }}</span>
+          </template>
+        </pv-column>
+
+        <pv-column field="status" header="ESTADO">
+          <template #body="{ data }">
+            <status-badge :status="data.status" :label="statusLabel(data.status)" />
+          </template>
+        </pv-column>
+      </app-data-table>
+
+      <content-card
+        v-if="route.query.transfer && selectedTransfer"
+        class="timeline-panel"
+        padding="p-4"
+      >
+        <template #header>
+          <div>
+            <h2 class="text-base md:text-lg font-bold text-main m-0">
+              {{ selectedTransfer.id }} · {{ selectedTransfer.route }}
+            </h2>
+            <p class="text-xs text-muted m-0 mt-1">
+              {{ selectedTransfer.cargo }} · {{ selectedTransfer.smartBox }}
+            </p>
+          </div>
+        </template>
+        <template #header-actions>
+          <status-badge :status="selectedTransfer.status" :label="statusLabel(selectedTransfer.status)" />
+        </template>
+
+        <app-timeline
+          :steps="(selectedTransfer.events || []).map(ev => ({
+            name: ev.title,
+            detail: ev.detail,
+            time: `${ev.date} · ${ev.time}`,
+            type: ev.type === 'warning' ? 'alert' : ev.type === 'success' ? 'success' : 'checkpoint'
+          }))"
+        />
+      </content-card>
+    </div>
+  </base-screen>
 </template>
 
 <style scoped src="../styles/custody-view.css"></style>

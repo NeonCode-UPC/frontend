@@ -5,7 +5,7 @@ const { searchQuery, searchPlaceholder, searchVisible, notificationCount, curren
 </script>
 
 <template>
-  <header class="app-header flex align-items-center justify-content-between px-2 py-2 sticky top-0 z-5">
+  <header class="app-header flex align-items-center justify-content-between px-3 md:px-4 sticky top-0 z-5">
     <!-- Left: Logo & Brand Name -->
     <div class="flex align-items-center gap-3">
       <router-link to="/home" class="flex align-items-center gap-2 no-underline">
@@ -18,7 +18,7 @@ const { searchQuery, searchPlaceholder, searchVisible, notificationCount, curren
 
     <!-- Center: Search Input (Configurable by screen) -->
     <div v-if="searchVisible" class="search-wrapper hidden md:block">
-      <div class="search-box flex align-items-center gap-2 px-3 py-2">
+      <div class="search-box flex align-items-center gap-2 px-3 py-1">
         <i class="pi pi-search text-xs text-muted"></i>
         <input
           v-model="searchQuery"
@@ -40,7 +40,7 @@ const { searchQuery, searchPlaceholder, searchVisible, notificationCount, curren
     <!-- Right: User Info & Notification -->
     <div class="flex align-items-center gap-3">
       <!-- User Metadata -->
-      <div class="user-metadata text-right hidden sm:block text-xs text-muted">
+      <div class="user-metadata text-right hidden sm:block text-muted">
         <span class="font-bold text-main">{{ currentUser.name }}</span>
         <span> · {{ currentUser.role }} · </span>
         <span>{{ currentUser.institution }}</span>
@@ -56,38 +56,43 @@ const { searchQuery, searchPlaceholder, searchVisible, notificationCount, curren
       </router-link>
 
       <!-- Avatar Circle -->
-      <div class="avatar-circle" role="img" aria-label="Perfil de usuario"></div>
+      <div class="avatar-circle flex align-items-center justify-content-center" role="img" aria-label="Perfil de usuario">
+        <span>{{ currentUser.name ? currentUser.name.split(' ').map(n => n[0]).join('').substring(0, 2) : 'AS' }}</span>
+      </div>
     </div>
   </header>
 </template>
 
 <style scoped>
 .app-header {
-  background-color: #F6F5EF;
-  border-bottom: 1px solid #E8E6DF;
-  height: 44px;
+  background-color: var(--bg-app, #F6F5EF);
+  border-bottom: 1px solid var(--border-subtle, #E8E6DF);
+  height: 54px;
+  padding-top: 0.5rem;
+  padding-bottom: 0.5rem;
+  box-sizing: border-box;
 }
 
 .logo-badge {
-  width: 21px;
-  height: 21px;
-  background-color: #10312F;
-  border-radius: 5px;
+  width: 24px;
+  height: 24px;
+  background-color: var(--color-brand-dark, #10312F);
+  border-radius: 6px;
 }
 
 .brand-title {
-  color: #10312F;
+  color: var(--color-brand-dark, #10312F);
   font-weight: 800;
-  font-size: 0.88rem;
+  font-size: 0.95rem;
   letter-spacing: -0.02em;
 }
 
 .search-box {
-  background-color: #FFFFFF;
+  background-color: var(--bg-card, #FFFFFF);
   border: 1px solid #E2E0D8;
   border-radius: 9999px;
-  width: 272px;
-  height: 28px;
+  width: 320px;
+  height: 32px;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
 }
 
@@ -96,49 +101,56 @@ const { searchQuery, searchPlaceholder, searchVisible, notificationCount, curren
   outline: none;
   background: transparent;
   width: 100%;
-  font-size: 0.8rem;
-  color: #10312F;
+  font-size: 0.8125rem;
+  color: var(--text-main, #10312F);
 }
 
 .search-input::placeholder {
-  color: #8C9E99;
+  color: var(--text-muted, #8C9E99);
 }
 
-.user-metadata { font-size: 0.62rem; white-space: nowrap; }
+.user-metadata {
+  font-size: 0.75rem;
+  white-space: nowrap;
+}
 
 .clear-btn {
   background: none;
   border: none;
   cursor: pointer;
   padding: 0;
-  color: #8C9E99;
+  color: var(--text-muted, #8C9E99);
 }
 
 .bell-btn {
-  width: 25px;
-  height: 25px;
-  background-color: #FFFFFF;
+  width: 32px;
+  height: 32px;
+  background-color: var(--bg-card, #FFFFFF);
   border: 1px solid #E2E0D8;
   border-radius: 50%;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
 }
 
 .bell-badge {
-  top: 4px;
-  right: 5px;
+  top: 6px;
+  right: 7px;
   width: 7px;
   height: 7px;
-  background-color: #E05A46;
+  background-color: var(--color-alert-red, #E05A46);
   border-radius: 50%;
   border: 1px solid #FFFFFF;
 }
 
 .avatar-circle {
-  width: 25px;
-  height: 25px;
+  width: 32px;
+  height: 32px;
   background-color: #D3DFDB;
-  color: #10312F;
+  color: var(--color-brand-dark, #10312F);
   border-radius: 50%;
   border: 1px solid #C4D3CE;
+  font-weight: 700;
+  font-size: 0.75rem;
+  letter-spacing: 0.02em;
+  user-select: none;
 }
 </style>

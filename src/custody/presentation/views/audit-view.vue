@@ -11,15 +11,63 @@ const exportRecords = () => window.print();
 </script>
 
 <template>
-  <section class="audit-page">
-    <header class="screen-title"><div><span class="breadcrumb">Auditoría</span><h1>Auditoría</h1><p>Registro de eventos de la institución</p></div><button class="export-action" type="button" @click="exportRecords"><i class="pi pi-download"></i> Exportar</button></header>
-    <p v-if="store.error" class="inline-notice"><i class="pi pi-info-circle"></i>{{ store.error }} <button type="button" @click="store.load()">Reintentar</button></p>
-    <section class="table-panel" aria-label="Registro de eventos de auditoría">
-      <div v-if="store.loading" class="empty-state">Cargando registros…</div>
-      <div v-else-if="!events.length" class="empty-state">No hay eventos que coincidan con la búsqueda.</div>
-      <div v-else class="table-scroll"><table><thead><tr><th>Fecha</th><th>Usuario</th><th>Evento</th><th>Recurso</th></tr></thead><tbody><tr v-for="event in events" :key="event.id"><td data-label="Fecha">{{ event.date.slice(0, 5) }} {{ event.time }}</td><td data-label="Usuario">{{ event.user }}</td><td data-label="Evento">{{ event.event }}</td><td data-label="Recurso">{{ event.resource }}</td></tr></tbody></table></div>
-    </section>
-  </section>
+  <base-screen
+    breadcrumb="Auditoría"
+    title="Auditoría institucional"
+    subtitle="Registro inmutable de eventos y accesos en el sistema"
+    search-placeholder="Filtrar por registro de auditoría..."
+    :fluid="true"
+  >
+    <template #actions>
+      <pv-button
+        label="Exportar"
+        icon="pi pi-download"
+        severity="secondary"
+        outlined
+        class="border-round-pill"
+        @click="exportRecords"
+      />
+    </template>
+
+    <div class="audit-page">
+      <p v-if="store.error" class="inline-notice">
+        <i class="pi pi-info-circle"></i>{{ store.error }}
+        <button type="button" @click="store.load()">Reintentar</button>
+      </p>
+
+      <app-data-table
+        :value="events"
+        :loading="store.loading"
+        min-width="45rem"
+        empty-title="No hay eventos que coincidan con la búsqueda"
+        empty-message="Intenta con otro término o filtro de búsqueda."
+      >
+        <pv-column field="date" header="FECHA">
+          <template #body="{ data }">
+            <span class="text-secondary text-sm">{{ data.date.slice(0, 5) }} {{ data.time }}</span>
+          </template>
+        </pv-column>
+
+        <pv-column field="user" header="USUARIO">
+          <template #body="{ data }">
+            <span class="text-main font-medium text-sm">{{ data.user }}</span>
+          </template>
+        </pv-column>
+
+        <pv-column field="event" header="EVENTO">
+          <template #body="{ data }">
+            <span class="text-secondary text-sm">{{ data.event }}</span>
+          </template>
+        </pv-column>
+
+        <pv-column field="resource" header="RECURSO">
+          <template #body="{ data }">
+            <strong class="text-main text-sm font-semibold">{{ data.resource }}</strong>
+          </template>
+        </pv-column>
+      </app-data-table>
+    </div>
+  </base-screen>
 </template>
 
 <style scoped src="../styles/audit-view.css"></style>
