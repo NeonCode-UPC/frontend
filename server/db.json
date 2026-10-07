@@ -6,7 +6,89 @@
   "transport-orders": [],
   "ambulances": [],
   "critical-incidents": [],
-  "custody-transfers": [],
-  "digital-audit-manifests": [],
-  "audit-events": []
+  "custody-transfers": [
+    {
+      "id": "TR-0244",
+      "route": "Callao → Chincha",
+      "cargo": "Hemocomponentes",
+      "departureAt": "28/09/2026 · 07:10",
+      "receivedAt": "28/09/2026 · 10:15",
+      "recipient": "Dr. Jorge Paredes Lino",
+      "status": "closed",
+      "temperatureMax": "5,6 °C",
+      "temperatureRange": "2–8 °C",
+      "openings": 0,
+      "smartBox": "SB-0165",
+      "events": [
+        { "date": "28/09/2026", "time": "07:10", "title": "Traslado iniciado", "detail": "SmartBox SB-0165 sellada en Callao", "type": "success" },
+        { "date": "28/09/2026", "time": "09:42", "title": "Llegada a destino", "detail": "Arribo registrado en Hospital de Chincha", "type": "normal" },
+        { "date": "28/09/2026", "time": "10:15", "title": "Recepción confirmada", "detail": "Dr. Jorge Paredes Lino · Hospital de Chincha", "type": "success" }
+      ]
+    },
+    {
+      "id": "TR-0417",
+      "route": "Lima → Arequipa",
+      "cargo": "Vacunas",
+      "departureAt": "29/09/2026 · 08:05",
+      "receivedAt": null,
+      "recipient": null,
+      "status": "in-transit",
+      "temperatureMax": "4,2 °C",
+      "temperatureRange": "2–8 °C",
+      "openings": 0,
+      "smartBox": "SB-0182",
+      "events": [
+        { "date": "29/09/2026", "time": "08:05", "title": "Traslado iniciado", "detail": "Salida registrada desde Lima", "type": "success" },
+        { "date": "29/09/2026", "time": "09:18", "title": "En tránsito", "detail": "Temperatura dentro del rango permitido", "type": "normal" }
+      ]
+    },
+    {
+      "id": "TR-0233",
+      "route": "Lima → Ica",
+      "cargo": "Muestras biológicas",
+      "departureAt": "25/09/2026 · 06:40",
+      "receivedAt": "25/09/2026 · 11:20",
+      "recipient": "Lic. Rosa Vela",
+      "status": "exception",
+      "temperatureMax": "8,7 °C",
+      "temperatureRange": "2–8 °C",
+      "openings": 1,
+      "smartBox": "SB-0141",
+      "events": [
+        { "date": "25/09/2026", "time": "06:40", "title": "Traslado iniciado", "detail": "Salida registrada desde Lima", "type": "success" },
+        { "date": "25/09/2026", "time": "08:56", "title": "Excursión de temperatura", "detail": "Se registró una temperatura máxima de 8,7 °C", "type": "warning" },
+        { "date": "25/09/2026", "time": "11:20", "title": "Recepción confirmada", "detail": "Lic. Rosa Vela · Hospital de Ica", "type": "success" }
+      ]
+    }
+  ],
+  "digital-audit-manifests": [
+    {
+      "id": "MAN-0244",
+      "transferId": "TR-0244",
+      "sealedAt": "28/09/2026 · 10:15",
+      "hash": "9f2c7a4b8d31e5620c41a71e",
+      "status": "valid",
+      "recipient": "Dr. Jorge Paredes Lino",
+      "temperatureMax": "5,6 °C",
+      "openings": 0,
+      "cargo": "Hemocomponentes"
+    },
+    {
+      "id": "MAN-0233",
+      "transferId": "TR-0233",
+      "sealedAt": "25/09/2026 · 11:20",
+      "hash": "70ac19d44e2b6f839c01d5a7",
+      "status": "valid",
+      "recipient": "Lic. Rosa Vela",
+      "temperatureMax": "8,7 °C",
+      "openings": 1,
+      "cargo": "Muestras biológicas"
+    }
+  ],
+  "audit-events": [
+    { "id": "AUD-001", "date": "29/09/2026", "time": "14:36", "user": "Dr. Jorge Paredes", "event": "Recepción confirmada", "resource": "TR-0417" },
+    { "id": "AUD-002", "date": "29/09/2026", "time": "13:44", "user": "Luis Quispe", "event": "Alerta reconocida", "resource": "INC-0312" },
+    { "id": "AUD-003", "date": "29/09/2026", "time": "09:20", "user": "Andrea Salazar", "event": "Umbral editado", "resource": "Vacunas 2–8 °C" },
+    { "id": "AUD-004", "date": "28/09/2026", "time": "16:02", "user": "Luis Quispe", "event": "SmartBox vinculado", "resource": "SB-0165" }
+  ]
 }
