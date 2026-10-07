@@ -5,12 +5,12 @@ const { searchQuery, searchPlaceholder, searchVisible, notificationCount, curren
 </script>
 
 <template>
-  <header class="app-header flex align-items-center justify-content-between px-4 py-2 sticky top-0 z-5">
+  <header class="app-header flex align-items-center justify-content-between px-2 py-2 sticky top-0 z-5">
     <!-- Left: Logo & Brand Name -->
     <div class="flex align-items-center gap-3">
       <router-link to="/home" class="flex align-items-center gap-2 no-underline">
         <div class="logo-badge flex align-items-center justify-content-center">
-          <i class="pi pi-box text-sm text-green-300"></i>
+          <i class="pi pi-wave-pulse text-sm text-green-300"></i>
         </div>
         <span class="brand-title">Medical SmartBox</span>
       </router-link>
@@ -40,7 +40,7 @@ const { searchQuery, searchPlaceholder, searchVisible, notificationCount, curren
     <!-- Right: User Info & Notification -->
     <div class="flex align-items-center gap-3">
       <!-- User Metadata -->
-      <div class="text-right hidden sm:block text-xs text-muted">
+      <div class="user-metadata text-right hidden sm:block text-xs text-muted">
         <span class="font-bold text-main">{{ currentUser.name }}</span>
         <span> · {{ currentUser.role }} · </span>
         <span>{{ currentUser.institution }}</span>
@@ -56,9 +56,7 @@ const { searchQuery, searchPlaceholder, searchVisible, notificationCount, curren
       </router-link>
 
       <!-- Avatar Circle -->
-      <div class="avatar-circle flex align-items-center justify-content-center text-xs font-bold">
-        LQ
-      </div>
+      <div class="avatar-circle" role="img" aria-label="Perfil de usuario"></div>
     </div>
   </header>
 </template>
@@ -67,20 +65,20 @@ const { searchQuery, searchPlaceholder, searchVisible, notificationCount, curren
 .app-header {
   background-color: #F6F5EF;
   border-bottom: 1px solid #E8E6DF;
-  height: 58px;
+  height: 44px;
 }
 
 .logo-badge {
-  width: 28px;
-  height: 28px;
+  width: 21px;
+  height: 21px;
   background-color: #10312F;
-  border-radius: 7px;
+  border-radius: 5px;
 }
 
 .brand-title {
   color: #10312F;
   font-weight: 800;
-  font-size: 1.05rem;
+  font-size: 0.88rem;
   letter-spacing: -0.02em;
 }
 
@@ -88,7 +86,8 @@ const { searchQuery, searchPlaceholder, searchVisible, notificationCount, curren
   background-color: #FFFFFF;
   border: 1px solid #E2E0D8;
   border-radius: 9999px;
-  width: 320px;
+  width: 272px;
+  height: 28px;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
 }
 
@@ -105,6 +104,8 @@ const { searchQuery, searchPlaceholder, searchVisible, notificationCount, curren
   color: #8C9E99;
 }
 
+.user-metadata { font-size: 0.62rem; white-space: nowrap; }
+
 .clear-btn {
   background: none;
   border: none;
@@ -114,8 +115,8 @@ const { searchQuery, searchPlaceholder, searchVisible, notificationCount, curren
 }
 
 .bell-btn {
-  width: 32px;
-  height: 32px;
+  width: 25px;
+  height: 25px;
   background-color: #FFFFFF;
   border: 1px solid #E2E0D8;
   border-radius: 50%;
@@ -133,8 +134,8 @@ const { searchQuery, searchPlaceholder, searchVisible, notificationCount, curren
 }
 
 .avatar-circle {
-  width: 32px;
-  height: 32px;
+  width: 25px;
+  height: 25px;
   background-color: #D3DFDB;
   color: #10312F;
   border-radius: 50%;
