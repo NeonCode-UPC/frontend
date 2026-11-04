@@ -1,34 +1,35 @@
 /**
  * Infrastructure resource payload for a SmartContainer returned by the REST API or json-server.
+ * Supports both official database columns (`smart_containers` table) and UI state properties.
  *
  * @class SmartContainerResource
  */
 export class SmartContainerResource {
-    /**
-     * @param {Object} params - Raw API payload attributes.
-     * @param {string} params.id
-     * @param {string} params.serialNumber
-     * @param {string} [params.model]
-     * @param {?string} [params.ambulancePlate]
-     * @param {?string} [params.currentTransferId]
-     * @param {number} params.currentTemperature
-     * @param {number} [params.targetMinTemperature]
-     * @param {number} [params.targetMaxTemperature]
-     * @param {number} params.batteryLevel
-     * @param {string} params.lidStatus
-     * @param {number} params.netWeight
-     * @param {number} [params.tareWeight]
-     * @param {string} [params.signalQuality]
-     * @param {string} [params.location]
-     * @param {string} params.status
-     * @param {string} [params.lastPing]
-     * @param {number} [params.unitWeight]
-     * @param {number} [params.estimatedUnits]
-     * @param {Array<Object>} [params.movements]
-     */
     constructor({
         id,
         serialNumber,
+        serial_number,
+        formFactor,
+        form_factor,
+        containerStatus,
+        lockState,
+        lock_state,
+        currentTemperatureCelsius,
+        current_temperature_celsius,
+        tareWeightGrams,
+        tare_weight_grams,
+        netWeightGrams,
+        net_weight_grams,
+        batteryPercentage,
+        battery_percentage,
+        is12vConnected,
+        is_12v_connected,
+        lastTelemetryAt,
+        last_telemetry_at,
+        createdAt,
+        created_at,
+        updatedAt,
+        updated_at,
         model,
         ambulancePlate,
         currentTransferId,
@@ -46,16 +47,27 @@ export class SmartContainerResource {
         unitWeight,
         estimatedUnits,
         movements
-    }) {
+    } = {}) {
         this.id = id;
-        this.serialNumber = serialNumber;
+        this.serialNumber = serialNumber ?? serial_number;
+        this.formFactor = formFactor ?? form_factor;
+        this.containerStatus = containerStatus;
+        this.lockState = lockState ?? lock_state;
+        this.currentTemperatureCelsius = currentTemperatureCelsius ?? current_temperature_celsius;
+        this.tareWeightGrams = tareWeightGrams ?? tare_weight_grams;
+        this.netWeightGrams = netWeightGrams ?? net_weight_grams;
+        this.batteryPercentage = batteryPercentage ?? battery_percentage;
+        this.is12vConnected = is12vConnected ?? is_12v_connected;
+        this.lastTelemetryAt = lastTelemetryAt ?? last_telemetry_at;
+        this.createdAt = createdAt ?? created_at;
+        this.updatedAt = updatedAt ?? updated_at;
         this.model = model;
         this.ambulancePlate = ambulancePlate;
         this.currentTransferId = currentTransferId;
-        this.currentTemperature = currentTemperature;
+        this.currentTemperature = currentTemperature ?? this.currentTemperatureCelsius;
         this.targetMinTemperature = targetMinTemperature;
         this.targetMaxTemperature = targetMaxTemperature;
-        this.batteryLevel = batteryLevel;
+        this.batteryLevel = batteryLevel ?? this.batteryPercentage;
         this.lidStatus = lidStatus;
         this.netWeight = netWeight;
         this.tareWeight = tareWeight;
