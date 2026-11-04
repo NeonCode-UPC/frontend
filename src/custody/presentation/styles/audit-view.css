@@ -5,6 +5,10 @@
   width: 100%;
 }
 
+.audit-actions { display: flex; align-items: center; gap: 8px; }
+.audit-report-link { min-height: 31px; border: 1px solid #e1e7e2; border-radius: 999px; background: #fff; color: #55716a; padding: 7px 12px; font: inherit; font-size: 9px; font-weight: 700; cursor: pointer; }
+.audit-report-link:hover { border-color: #7bbbab; color: #147e72; }
+
 .table-scroll {
   padding: 0;
   overflow-x: auto;
