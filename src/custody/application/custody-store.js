@@ -10,6 +10,8 @@ export const useCustodyStore = defineStore('custody', {
     transfers: [],
     manifests: [],
     auditEvents: [],
+    selectedAudit: null,
+    selectedReport: null,
     developmentOtp: null,
     loading: false,
     error: null,
@@ -76,6 +78,24 @@ export const useCustodyStore = defineStore('custody', {
     async downloadTraceabilityReport(id) {
       try {
         const { data } = await api.getTraceabilityReportPdf(id);
+        return data;
+      } catch (error) {
+        throw new Error(messageFrom(error));
+      }
+    },
+    async loadTransferAudit(id) {
+      try {
+        const { data } = await api.getTransferAudit(id);
+        this.selectedAudit = data;
+        return data;
+      } catch (error) {
+        throw new Error(messageFrom(error));
+      }
+    },
+    async loadTraceabilityReport(id) {
+      try {
+        const { data } = await api.getTraceabilityReport(id);
+        this.selectedReport = data;
         return data;
       } catch (error) {
         throw new Error(messageFrom(error));
