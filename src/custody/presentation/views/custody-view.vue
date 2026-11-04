@@ -15,6 +15,7 @@ const otpCode = ref('');
 const otpError = ref('');
 const otpAttempts = ref(0);
 const otpVerified = ref(false);
+const receptionBusy = ref(false);
 
 onMounted(() => {
   configureHeader({ placeholder: 'Filtrar por código de custodia...', visible: true });
@@ -27,32 +28,54 @@ const filteredTransfers = computed(() => {
 });
 const selectedTransfer = computed(() => store.findTransfer(selectedId.value));
 const openTransfer = (id) => router.push({ path: '/custody', query: { transfer: id } });
-const statusLabel = (status) => ({ closed: 'Cerrada', 'in-transit': 'En tránsito', 'pending-otp': 'Verificación OTP', exception: 'Cerrada con excursión' }[status] || status);
+const statusLabel = (status) => ({ closed: 'Cerrada', 'in-transit': 'En tránsito', 'pending-otp': 'Verificación OTP', 'otp-verified': 'OTP verificado', exception: 'Cerrada con excursión' }[status] || status);
 const receivedTime = (transfer) => transfer.receivedAt?.split('·')[1]?.trim() || '—';
-const beginReception = (transfer) => {
+const beginReception = async (transfer) => {
   otpError.value = '';
   otpCode.value = '';
-  otpAttempts.value = 0;
-  otpVerified.value = false;
   receptionTransfer.value = transfer;
   recipientName.value = transfer.recipient || 'Dr. Jorge Paredes Lino';
-  if (transfer.canPrepareReception) store.prepareReception(transfer.id, recipientName.value);
+  otpVerified.value = transfer.isOtpVerified;
+  otpAttempts.value = transfer.otpAttempts || 0;
+  if (transfer.status !== 'otp-verified') {
+    receptionBusy.value = true;
+    try {
+      receptionTransfer.value = await store.prepareReception(transfer.id, recipientName.value);
+      otpCode.value = store.developmentOtp || '';
+      otpAttempts.value = receptionTransfer.value.otpAttempts || 0;
+    } catch (error) {
+      otpError.value = error.message;
+    } finally {
+      receptionBusy.value = false;
+    }
+  }
 };
-const verifyOtp = () => {
+const verifyOtp = async () => {
   otpError.value = '';
+  receptionBusy.value = true;
   try {
-    store.verifyReceptionCode(receptionTransfer.value.id, otpCode.value);
+    await store.verifyReceptionCode(receptionTransfer.value.id, otpCode.value);
     otpVerified.value = true;
+    otpAttempts.value = 0;
   } catch (error) {
-    otpAttempts.value += 1;
+    otpAttempts.value = receptionTransfer.value.otpAttempts || otpAttempts.value + 1;
     otpError.value = `${error.message}${otpAttempts.value < 3 ? ` Te quedan ${3 - otpAttempts.value} intentos.` : ' Solicita un nuevo código.'}`;
+  } finally {
+    receptionBusy.value = false;
   }
 };
 const closeReception = async () => {
   if (!otpVerified.value) return;
-  await store.confirmReception(receptionTransfer.value.id);
-  receptionTransfer.value = null;
-  router.replace({ path: '/custody', query: { transfer: selectedId.value || 'TR-0417' } });
+  receptionBusy.value = true;
+  try {
+    await store.confirmReception(receptionTransfer.value.id);
+    receptionTransfer.value = null;
+    router.replace({ path: '/custody', query: { transfer: selectedId.value || 'TR-0417' } });
+  } catch (error) {
+    otpError.value = error.message;
+  } finally {
+    receptionBusy.value = false;
+  }
 };
 </script>
 
@@ -111,12 +134,13 @@ const closeReception = async () => {
         <pv-column header="ACCIÓN">
           <template #body="{ data }">
             <button
-              v-if="data.status === 'in-transit' || data.status === 'pending-otp'"
+              v-if="data.status === 'in-transit' || data.status === 'pending-otp' || data.status === 'otp-verified'"
               class="prepare-reception"
               type="button"
+              :disabled="receptionBusy"
               @click.stop="beginReception(data)"
             >
-              {{ data.status === 'pending-otp' ? 'Continuar recepción' : 'Preparar recepción' }}
+              {{ data.status === 'otp-verified' ? 'Completar recepción' : data.status === 'pending-otp' ? 'Continuar recepción' : 'Preparar recepción' }}
             </button>
             <button v-else class="prepare-reception prepare-reception--quiet" type="button" @click.stop="router.push({ name: 'custody-records', query: { transfer: data.id } })">
               Ver acta
@@ -143,7 +167,7 @@ const closeReception = async () => {
         <div class="reception-grid">
           <article class="reception-card">
             <label class="field-label" for="recipient-name">RESPONSABLE DE RECEPCIÓN</label>
-            <input id="recipient-name" v-model="recipientName" :disabled="receptionTransfer.isAwaitingOtp" class="recipient-input" />
+            <input id="recipient-name" v-model="recipientName" :disabled="receptionTransfer.isAwaitingOtp || otpVerified" class="recipient-input" />
             <label class="field-label otp-label" for="otp-code">Código de 6 dígitos del receptor</label>
             <input
               id="otp-code"
@@ -154,10 +178,10 @@ const closeReception = async () => {
               autocomplete="one-time-code"
               maxlength="6"
               placeholder="000000"
-              :disabled="otpVerified || otpAttempts >= 3"
+              :disabled="otpVerified || otpAttempts >= 3 || receptionBusy"
               @input="otpCode = otpCode.replace(/\D/g, '').slice(0, 6)"
             />
-            <button v-if="!otpVerified" class="verify-otp" type="button" :disabled="otpCode.length !== 6 || otpAttempts >= 3" @click="verifyOtp">
+            <button v-if="!otpVerified" class="verify-otp" type="button" :disabled="otpCode.length !== 6 || otpAttempts >= 3 || receptionBusy" @click="verifyOtp">
               Verificar código
             </button>
             <div v-else class="otp-success"><i class="pi pi-check-circle"></i> Identidad verificada</div>
