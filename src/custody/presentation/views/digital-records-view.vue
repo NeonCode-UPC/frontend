@@ -1,15 +1,18 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue';
-import { useRoute } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 import { useCustodyStore } from '../../application/custody-store.js';
 
 const route = useRoute();
+const router = useRouter();
 const store = useCustodyStore();
 const downloadError = ref('');
 onMounted(() => store.load());
-const manifest = computed(() => store.manifests.find((item) => item.transferId === route.query.transfer) || store.manifests[0] || null);
+const manifest = computed(() => route.query.transfer ? store.manifests.find((item) => item.transferId === route.query.transfer) || null : null);
 const transfer = computed(() => store.findTransfer(manifest.value?.transferId));
+const openManifest = (id) => router.push({ name: 'custody-records', query: { transfer: id } });
 const downloadManifest = async () => {
+  if (!manifest.value) return;
   downloadError.value = '';
   try {
     const blob = await store.downloadTraceabilityReport(manifest.value.transferId);
@@ -17,95 +20,59 @@ const downloadManifest = async () => {
     const link = document.createElement('a');
     link.href = url;
     link.download = `traceability-${manifest.value.transferId}.pdf`;
+    document.body.append(link);
     link.click();
-    URL.revokeObjectURL(url);
-  } catch (error) {
-    downloadError.value = error.message;
-  }
+    link.remove();
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+  } catch (error) { downloadError.value = error.message; }
 };
 </script>
 
 <template>
   <base-screen
     :breadcrumb="manifest ? `Actas digitales / ${manifest.transferId}` : 'Actas digitales'"
-    :title="manifest ? `Acta digital ${manifest.transferId}` : 'Acta digital'"
-    :subtitle="transfer?.route || 'Callao → Chincha'"
+    :title="manifest ? `Acta digital ${manifest.transferId}` : 'Actas digitales'"
+    :subtitle="manifest ? transfer?.route : 'Manifiestos sellados e inmutables por traslado'"
     :fluid="true"
   >
     <template #actions>
-      <pv-button
-        v-if="manifest"
-        label="Descargar PDF"
-        icon="pi pi-download"
-        class="border-round-pill btn-download-pdf font-bold text-xs"
-        @click="downloadManifest"
-      />
+      <button v-if="manifest" class="manifest-secondary" @click="router.push({ name: 'custody-records' })"><i class="pi pi-arrow-left"></i> Todas las actas</button>
+      <button v-if="manifest" class="manifest-primary" @click="downloadManifest"><i class="pi pi-download"></i> Descargar PDF</button>
     </template>
 
-    <div v-if="manifest" class="manifest-cards-layout">
-      <p v-if="downloadError" class="inline-notice" role="alert">{{ downloadError }}</p>
-      <!-- Tarjeta 1: Acta de traslado -->
-      <article class="doc-card">
-        <h3 class="doc-title">Acta de traslado {{ manifest.transferId }}</h3>
-        <div class="doc-rows">
-          <p class="doc-row">
-            <strong class="row-label">Carga:</strong>
-            <span class="row-value">
-              {{ manifest.cargo.toLowerCase() }}
-              <template v-if="transfer?.temperatureRange">
-                · {{ transfer.temperatureRange }}
-              </template>
-            </span>
-          </p>
-          <p class="doc-row">
-            <strong class="row-label">Recibido por:</strong>
-            <span class="row-value">{{ manifest.recipient }}</span>
-          </p>
-          <p class="doc-row">
-            <strong class="row-label">Fecha y hora:</strong>
-            <span class="row-value">{{ manifest.sealedAt.replace(' · ', ' ') }}</span>
-          </p>
-          <p class="doc-row">
-            <strong class="row-label">Temperatura máx.:</strong>
-            <span class="row-value">{{ manifest.temperatureMax }} · aperturas: {{ manifest.openings }}</span>
-          </p>
-        </div>
-      </article>
+    <p v-if="downloadError" class="manifest-error" role="alert">{{ downloadError }}</p>
 
-      <!-- Tarjeta 2: Sellado -->
-      <aside class="seal-card">
-        <h3 class="seal-title">Sellado</h3>
-        <div class="seal-rows">
-          <div class="seal-row border-bottom-subtle">
-            <strong class="seal-label">Estado</strong>
-            <span class="seal-desc">Manifiesto sellado</span>
-            <span class="seal-badge-valid">
-              <span class="badge-dot"></span>
-              Válido
-            </span>
-          </div>
-          <div class="seal-row">
-            <strong class="seal-label">SHA-256</strong>
-            <span class="hash-text">
-              {{ manifest.hash ? `${manifest.hash.slice(0, 4)}...${manifest.hash.slice(-4)}` : '9f2c...a71e' }}
-            </span>
-          </div>
-        </div>
-      </aside>
-    </div>
-    <div v-else class="loading-state">
-      <div v-if="store.loading" class="p-5 text-center text-muted text-sm">
-        <i class="pi pi-spin pi-spinner mr-2"></i>Cargando actas digitales…
+    <section v-if="!manifest" class="manifest-list-page">
+      <div v-if="store.loading" class="manifest-loading"><i class="pi pi-spin pi-spinner"></i> Cargando actas</div>
+      <div v-else-if="store.manifests.length" class="manifest-list">
+        <article v-for="item in store.manifests" :key="item.id" class="manifest-list-row" @click="openManifest(item.transferId)">
+          <div class="manifest-list-id"><strong>{{ item.transferId }}</strong><small>{{ store.findTransfer(item.transferId)?.route || item.cargo }}</small></div>
+          <span class="manifest-status"><i></i>{{ item.status === 'valid' ? 'Válido' : 'Revisar' }}</span>
+          <span class="manifest-date">{{ item.sealedAt }}</span>
+          <button class="manifest-secondary" @click.stop="openManifest(item.transferId)">Ver acta <i class="pi pi-arrow-right"></i></button>
+        </article>
       </div>
-      <empty-state
-        v-else
-        icon="pi pi-file"
-        title="No hay actas digitales disponibles"
-        :message="store.error || 'No se encontró el acta digital seleccionada.'"
-        :action-label="store.error ? 'Reintentar' : ''"
-        @action="store.load()"
-      />
-    </div>
+      <div v-else class="manifest-empty"><i class="pi pi-file"></i><strong>No hay actas digitales</strong><span>{{ store.error || 'Al cerrar una recepción se generará su manifiesto sellado.' }}</span></div>
+    </section>
+
+    <section v-else-if="manifest" class="manifest-detail-layout">
+      <article class="manifest-document-card">
+        <div class="document-heading"><span class="eyebrow">ACTA DE TRASLADO</span><h2>Acta digital {{ manifest.transferId }}</h2><p>{{ transfer?.route }}</p></div>
+        <div class="document-data">
+          <div><strong>Carga</strong><span>{{ manifest.cargo.toLowerCase() }} · {{ transfer?.temperatureRange || '2–8 °C' }}</span></div>
+          <div><strong>Recibido por</strong><span>{{ manifest.recipient }}</span></div>
+          <div><strong>Fecha y hora</strong><span>{{ manifest.sealedAt.replace(' · ', ' ') }}</span></div>
+          <div><strong>Temperatura máx.</strong><span>{{ manifest.temperatureMax }} · aperturas: {{ manifest.openings }}</span></div>
+        </div>
+        <div class="manifest-document-footer"><i class="pi pi-shield"></i> Registro de custodia con sello digital</div>
+      </article>
+      <aside class="manifest-seal-card">
+        <span class="eyebrow">INTEGRIDAD DOCUMENTAL</span><h2>Sellado</h2>
+        <div class="seal-state"><span>Estado</span><strong class="manifest-status"><i></i>{{ manifest.status === 'valid' ? 'Válido' : 'Revisar' }}</strong><small>Manifiesto sellado</small></div>
+        <div class="seal-hash"><span>SHA-256</span><code>{{ manifest.hash }}</code></div>
+        <p class="immutable-note"><i class="pi pi-lock"></i> Este manifiesto es inmutable.</p>
+      </aside>
+    </section>
   </base-screen>
 </template>
 
