@@ -1,14 +1,28 @@
 <script setup>
-import { computed, onMounted } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { useRoute } from 'vue-router';
 import { useCustodyStore } from '../../application/custody-store.js';
 
 const route = useRoute();
 const store = useCustodyStore();
+const downloadError = ref('');
 onMounted(() => store.load());
 const manifest = computed(() => store.manifests.find((item) => item.transferId === route.query.transfer) || store.manifests[0] || null);
 const transfer = computed(() => store.findTransfer(manifest.value?.transferId));
-const printManifest = () => window.print();
+const downloadManifest = async () => {
+  downloadError.value = '';
+  try {
+    const blob = await store.downloadTraceabilityReport(manifest.value.transferId);
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `traceability-${manifest.value.transferId}.pdf`;
+    link.click();
+    URL.revokeObjectURL(url);
+  } catch (error) {
+    downloadError.value = error.message;
+  }
+};
 </script>
 
 <template>
@@ -24,11 +38,12 @@ const printManifest = () => window.print();
         label="Descargar PDF"
         icon="pi pi-download"
         class="border-round-pill btn-download-pdf font-bold text-xs"
-        @click="printManifest"
+        @click="downloadManifest"
       />
     </template>
 
     <div v-if="manifest" class="manifest-cards-layout">
+      <p v-if="downloadError" class="inline-notice" role="alert">{{ downloadError }}</p>
       <!-- Tarjeta 1: Acta de traslado -->
       <article class="doc-card">
         <h3 class="doc-title">Acta de traslado {{ manifest.transferId }}</h3>
