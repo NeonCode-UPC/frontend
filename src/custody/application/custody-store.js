@@ -20,10 +20,14 @@ export const useCustodyStore = defineStore('custody', {
     },
     verifyReceptionCode(id, code) {
       const transfer = this.findTransfer(id);
-      if (!transfer?.isAwaitingOtp) throw new Error('Prepara la recepción antes de verificar el código.');
-      if (!/^\d{6}$/.test(code)) throw new Error('Ingresa los 6 dígitos del código.');
+      if (!transfer) throw new Error('No se encontró el traslado.');
       // The local prototype uses the OTP shown in the approved screen reference.
-      if (code !== '307158') throw new Error('Código incorrecto.');
+      transfer.verifyOtp(code, '307158');
+      return transfer;
+    },
+    confirmReception(id) {
+      const transfer = this.findTransfer(id);
+      if (!transfer) throw new Error('No se encontró el traslado.');
       const now = new Date();
       transfer.confirmReception({
         date: now.toLocaleDateString('es-PE'),
