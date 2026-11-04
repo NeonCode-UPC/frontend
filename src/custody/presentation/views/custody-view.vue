@@ -27,7 +27,7 @@ const filteredTransfers = computed(() => {
 });
 const selectedTransfer = computed(() => store.findTransfer(selectedId.value));
 const openTransfer = (id) => router.push({ path: '/custody', query: { transfer: id } });
-const statusLabel = (status) => ({ closed: 'Cerrada', 'in-transit': 'En tránsito', exception: 'Cerrada con excursión' }[status] || status);
+const statusLabel = (status) => ({ closed: 'Cerrada', 'in-transit': 'En tránsito', 'pending-otp': 'Verificación OTP', exception: 'Cerrada con excursión' }[status] || status);
 const receivedTime = (transfer) => transfer.receivedAt?.split('·')[1]?.trim() || '—';
 const beginReception = (transfer) => {
   otpError.value = '';
