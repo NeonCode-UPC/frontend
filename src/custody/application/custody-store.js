@@ -3,9 +3,18 @@ import { CustodyApi } from '../infrastructure/custody-api.js';
 import { toCustodyTransfer, toDigitalAuditManifest } from '../infrastructure/custody.assembler.js';
 
 const api = new CustodyApi();
+const messageFrom = (error) => error.response?.data?.message || error.message || 'No se pudo completar la operación.';
 
 export const useCustodyStore = defineStore('custody', {
-  state: () => ({ transfers: [], manifests: [], auditEvents: [], loading: false, error: null, initialized: false }),
+  state: () => ({
+    transfers: [],
+    manifests: [],
+    auditEvents: [],
+    developmentOtp: null,
+    loading: false,
+    error: null,
+    initialized: false
+  }),
   getters: {
     closedCount: (state) => state.transfers.filter((item) => item.status === 'closed').length,
     inTransitCount: (state) => state.transfers.filter((item) => item.status === 'in-transit').length,
@@ -13,58 +22,64 @@ export const useCustodyStore = defineStore('custody', {
     findTransfer: (state) => (id) => state.transfers.find((item) => item.id === id)
   },
   actions: {
-    prepareReception(id, recipient) {
-      const transfer = this.findTransfer(id);
-      if (!transfer) throw new Error('No se encontró el traslado.');
-      transfer.prepareReception(recipient);
+    applyTransfer(data) {
+      const current = this.findTransfer(data.id);
+      const updated = toCustodyTransfer(data);
+      if (current) Object.assign(current, updated);
+      else this.transfers.unshift(updated);
+      return current || updated;
     },
-    verifyReceptionCode(id, code) {
-      const transfer = this.findTransfer(id);
-      if (!transfer) throw new Error('No se encontró el traslado.');
-      // The local prototype uses the OTP shown in the approved screen reference.
-      transfer.verifyOtp(code, '307158');
-      return transfer;
+    async prepareReception(id, recipient) {
+      try {
+        const { data } = await api.prepareReception(id, {
+          recipient,
+          insideDestinationGeofence: true
+        });
+        this.developmentOtp = data.developmentCode || null;
+        return this.applyTransfer(data.transfer);
+      } catch (error) {
+        throw new Error(messageFrom(error));
+      }
     },
-    async confirmReception(id) {
-      const transfer = this.findTransfer(id);
-      if (!transfer) throw new Error('No se encontró el traslado.');
-      const now = new Date();
-      transfer.confirmReception({
-        date: now.toLocaleDateString('es-PE'),
-        time: now.toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' })
-      });
-      const sealedAt = transfer.receivedAt;
-      const canonicalManifest = JSON.stringify({
-        transferId: transfer.id,
-        sealedAt,
-        recipient: transfer.recipient,
-        temperatureMax: transfer.temperatureMax,
-        openings: transfer.openings,
-        cargo: transfer.cargo,
-        events: transfer.events
-      });
-      const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(canonicalManifest));
-      const hash = [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, '0')).join('');
-      this.manifests.unshift({
-        id: `MAN-${transfer.id.slice(-4)}`,
-        transferId: transfer.id,
-        sealedAt,
-        recipient: transfer.recipient,
-        temperatureMax: transfer.temperatureMax,
-        openings: transfer.openings,
-        cargo: transfer.cargo,
-        status: 'valid',
-        hash
-      });
-      this.auditEvents.unshift({
-        id: `AUD-${Date.now()}`,
-        date: now.toLocaleDateString('es-PE'),
-        time: now.toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' }),
-        user: transfer.recipient,
-        event: 'Recepción confirmada',
-        resource: transfer.id
-      });
-      return transfer;
+    async verifyReceptionCode(id, code) {
+      try {
+        const { data } = await api.verifyOtp(id, code);
+        const transfer = this.findTransfer(id);
+        if (transfer) {
+          transfer.status = data.status;
+          transfer.otpAttempts = data.attempts;
+          transfer.otpVerified = true;
+        }
+        if (!data.verified) {
+          if (transfer) transfer.otpVerified = false;
+          throw new Error(data.message || 'Código incorrecto.');
+        }
+        return transfer;
+      } catch (error) {
+        throw new Error(messageFrom(error));
+      }
+    },
+    async confirmReception(id, { recipientNotes = null, hasUnresolvedCriticalAlerts = false } = {}) {
+      try {
+        const { data } = await api.acceptReception(id, { recipientNotes, hasUnresolvedCriticalAlerts });
+        const transfer = this.applyTransfer(data.transfer);
+        const manifest = toDigitalAuditManifest(data.manifest);
+        this.manifests = [manifest, ...this.manifests.filter((item) => item.transferId !== manifest.transferId)];
+        const { data: events } = await api.getAuditEvents();
+        this.auditEvents = events;
+        this.developmentOtp = null;
+        return transfer;
+      } catch (error) {
+        throw new Error(messageFrom(error));
+      }
+    },
+    async downloadTraceabilityReport(id) {
+      try {
+        const { data } = await api.getTraceabilityReportPdf(id);
+        return data;
+      } catch (error) {
+        throw new Error(messageFrom(error));
+      }
     },
     async load() {
       if (this.initialized || this.loading) return;
@@ -80,8 +95,8 @@ export const useCustodyStore = defineStore('custody', {
         this.manifests = manifestsResult.data.map(toDigitalAuditManifest);
         this.auditEvents = auditEventsResult.data;
         this.initialized = true;
-      } catch {
-        this.error = 'No se pudieron cargar los datos. Verifica que el servidor API esté activo e inténtalo de nuevo.';
+      } catch (error) {
+        this.error = `${messageFrom(error)} Verifica que la API esté activa en http://localhost:5261.`;
       } finally {
         this.loading = false;
       }
