@@ -48,9 +48,9 @@ const verifyOtp = () => {
     otpError.value = `${error.message}${otpAttempts.value < 3 ? ` Te quedan ${3 - otpAttempts.value} intentos.` : ' Solicita un nuevo código.'}`;
   }
 };
-const closeReception = () => {
+const closeReception = async () => {
   if (!otpVerified.value) return;
-  store.confirmReception(receptionTransfer.value.id);
+  await store.confirmReception(receptionTransfer.value.id);
   receptionTransfer.value = null;
   router.replace({ path: '/custody', query: { transfer: selectedId.value || 'TR-0417' } });
 };
