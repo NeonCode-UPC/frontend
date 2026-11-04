@@ -25,13 +25,44 @@ export const useCustodyStore = defineStore('custody', {
       transfer.verifyOtp(code, '307158');
       return transfer;
     },
-    confirmReception(id) {
+    async confirmReception(id) {
       const transfer = this.findTransfer(id);
       if (!transfer) throw new Error('No se encontró el traslado.');
       const now = new Date();
       transfer.confirmReception({
         date: now.toLocaleDateString('es-PE'),
         time: now.toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' })
+      });
+      const sealedAt = transfer.receivedAt;
+      const canonicalManifest = JSON.stringify({
+        transferId: transfer.id,
+        sealedAt,
+        recipient: transfer.recipient,
+        temperatureMax: transfer.temperatureMax,
+        openings: transfer.openings,
+        cargo: transfer.cargo,
+        events: transfer.events
+      });
+      const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(canonicalManifest));
+      const hash = [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, '0')).join('');
+      this.manifests.unshift({
+        id: `MAN-${transfer.id.slice(-4)}`,
+        transferId: transfer.id,
+        sealedAt,
+        recipient: transfer.recipient,
+        temperatureMax: transfer.temperatureMax,
+        openings: transfer.openings,
+        cargo: transfer.cargo,
+        status: 'valid',
+        hash
+      });
+      this.auditEvents.unshift({
+        id: `AUD-${Date.now()}`,
+        date: now.toLocaleDateString('es-PE'),
+        time: now.toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' }),
+        user: transfer.recipient,
+        event: 'Recepción confirmada',
+        resource: transfer.id
       });
       return transfer;
     },
