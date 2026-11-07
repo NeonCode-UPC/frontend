@@ -1,3 +1,5 @@
+import { ThermalThresholds } from "./thermal-thresholds.value-object.js";
+
 /**
  * TelemetryLog entity within the Smart Container & Telemetry Monitoring bounded context.
  * Aligned with Table 5 (`telemetry_logs`) of Chapter 4.8 Database Design and Chapter 4.7 Class Diagram.
@@ -62,7 +64,7 @@ export class TelemetryLog {
         const resolvedLidEngaged = lidLockEngaged !== undefined ? Boolean(lidLockEngaged) : (lidStatus !== 'open');
         const resolvedExcursion = isThermalExcursion !== undefined
             ? Boolean(isThermalExcursion)
-            : (resolvedTemp < 2.0 || resolvedTemp > 8.0);
+            : !new ThermalThresholds().isInRange(resolvedTemp);
         const resolvedTripId = tripId !== undefined ? tripId : transferId;
 
         // Official Database Schema fields (`telemetry_logs` table - Chapter 4.8.1.2)
@@ -93,13 +95,24 @@ export class TelemetryLog {
         this.status = status || (this.isThermalExcursion ? 'critical' : (!this.lidLockEngaged ? 'warning' : 'normal'));
     }
 
+    /**
+     * Current time in the format used by the mock API: Lima wall-clock time written as an ISO string.
+     * Every view of this BC reads timestamps as wall-clock time, so new readings line up with the mock data.
+     * @returns {string}
+     */
+    static currentTimestamp() {
+        const now = new Date();
+        const pad = (n) => String(n).padStart(2, '0');
+        return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}T${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}.000000Z`;
+    }
+
     static buildIsoTimestamp(timestamp, time) {
         if (timestamp && timestamp.includes('/')) {
             const [datePart, timePart] = timestamp.split(' ');
             const [day, month, year] = datePart.split('/');
             return `${year}-${month}-${day}T${timePart || time || '12:00'}:00.000000Z`;
         }
-        return new Date().toISOString();
+        return TelemetryLog.currentTimestamp();
     }
 
     static extractTimeLabel(isoString) {
