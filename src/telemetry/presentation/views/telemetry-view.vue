@@ -1,9 +1,12 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
+import { useI18n } from 'vue-i18n';
 import { useToast } from 'primevue/usetoast';
 import { useLayoutHeader } from '../../../shared/composables/use-layout-header.js';
 import { useTelemetryStore } from '../../application/telemetry.store.js';
+import { RecordWeightWithdrawalCommand } from '../../domain/record-weight-withdrawal.command.js';
+import { useTelemetryFormat } from '../composables/use-telemetry-format.js';
 import ContainerCard from '../components/container-card.vue';
 import ContainerDetailPanel from '../components/container-detail-panel.vue';
 import StockWeightModal from '../components/stock-weight-modal.vue';
@@ -17,8 +20,10 @@ import LinkContainerWizard from '../components/link-container-wizard.vue';
 const route = useRoute();
 const router = useRouter();
 const toast = useToast();
+const { t } = useI18n();
 const { searchQuery, configureHeader } = useLayoutHeader();
 const telemetryStore = useTelemetryStore();
+const { formatTemperature, containerState } = useTelemetryFormat();
 
 // View layout: 'list' (catalog) or 'detail' (single container inspection)
 const currentMode = ref('list');
@@ -36,7 +41,7 @@ const targetWeightContainer = ref(null);
 
 onMounted(async () => {
   configureHeader({
-    placeholder: 'Filtrar por ruta, estado o SmartBox',
+    placeholder: t('telemetry.catalog.search-placeholder'),
     visible: true
   });
   await telemetryStore.fetchContainers();
@@ -76,7 +81,7 @@ const filteredContainers = computed(() => {
       c.ambulancePlate?.toLowerCase().includes(query) ||
       c.model?.toLowerCase().includes(query) ||
       c.location?.toLowerCase().includes(query) ||
-      c.status?.toLowerCase().includes(query)
+      containerState(c).label.toLowerCase().includes(query)
     );
   }
 
@@ -98,6 +103,18 @@ const onlineCount = computed(() => telemetryStore.containers.filter(c => c.statu
 const offlineCount = computed(() => telemetryStore.containers.filter(c => c.status === 'offline').length);
 const enRouteCount = computed(() => telemetryStore.containers.filter(c => Boolean(c.ambulancePlate)).length);
 
+const filterOptions = computed(() => [
+  { label: t('telemetry.catalog.filter.all', { count: totalCount.value }), value: 'all' },
+  { label: t('telemetry.catalog.filter.online', { count: onlineCount.value }), value: 'online' },
+  { label: t('telemetry.catalog.filter.offline', { count: offlineCount.value }), value: 'offline' },
+  { label: t('telemetry.catalog.filter.en-route', { count: enRouteCount.value }), value: 'en-route' }
+]);
+
+const formatOptions = computed(() => [
+  { icon: 'pi pi-bars', value: 'table', label: '', ariaLabel: t('telemetry.catalog.view-table') },
+  { icon: 'pi pi-th-large', value: 'grid', label: '', ariaLabel: t('telemetry.catalog.view-grid') }
+]);
+
 function selectContainerForDetail(container) {
   telemetryStore.selectContainer(container);
   currentMode.value = 'detail';
@@ -115,38 +132,35 @@ function openWeightModal(container) {
 }
 
 async function handleConfirmWithdrawal(payload) {
-  await telemetryStore.recordWeightMovement(payload);
-  toast.add({
-    severity: 'success',
-    summary: 'Retiro Registrado',
-    detail: `Se registró la extracción de viales en el SmartBox ${payload.containerId}.`,
-    life: 4000
-  });
+  try {
+    await telemetryStore.recordWeightMovement(new RecordWeightWithdrawalCommand(payload));
+    toast.add({
+      severity: 'success',
+      summary: t('telemetry.toast.withdrawal-summary'),
+      detail: t('telemetry.toast.withdrawal-detail', { id: payload.containerId }),
+      life: 4000
+    });
+  } catch {
+    toast.add({ severity: 'error', summary: t('telemetry.toast.error-summary'), detail: t('telemetry.toast.error-detail'), life: 4000 });
+  }
 }
 
 function handleContainerLinked(payload) {
   toast.add({
     severity: 'success',
-    summary: 'Contenedor Vinculado',
-    detail: `SmartBox ${payload.containerId} activado exitosamente en ambulancia ${payload.ambulancePlate}.`,
+    summary: t('telemetry.toast.linked-summary'),
+    detail: t('telemetry.toast.linked-detail', { id: payload.containerId, plate: payload.ambulancePlate }),
     life: 4000
   });
   telemetryStore.fetchContainers();
 }
 
-function getStatusBadgeClass(container) {
-  if (container.status === 'offline') return 'state-offline';
-  if (container.currentTemperature > container.targetMaxTemperature || container.status === 'warning') return 'state-critical';
-  if (!container.ambulancePlate || container.status === 'unlinked') return 'state-available';
-  return 'state-stable';
-}
-
-function getStatusLabel(container) {
-  if (container.status === 'offline') return 'Desconectado';
-  if (container.currentTemperature > container.targetMaxTemperature || container.status === 'warning') return 'Crítica';
-  if (!container.ambulancePlate || container.status === 'unlinked') return 'Disponible';
-  return 'Estable';
-}
+const stateBadgeClass = {
+  offline: 'state-offline',
+  critical: 'state-critical',
+  available: 'state-available',
+  stable: 'state-stable'
+};
 </script>
 
 <template>
@@ -156,17 +170,17 @@ function getStatusLabel(container) {
       <!-- Catalog Header -->
       <header class="catalog-header flex flex-column md:flex-row md:align-items-center justify-content-between gap-3">
         <div>
-          <span class="breadcrumb-text text-xs text-muted block mb-1">SmartBox</span>
-          <h1 class="text-2xl md:text-3xl font-bold text-main m-0">SmartBox</h1>
-          <p class="subtitle text-xs text-muted mt-1 mb-0">
-            {{ totalCount }} contenedores · {{ offlineCount }} sin conexión
+          <span class="breadcrumb-text text-xs text-muted block mb-1">{{ t('telemetry.name') }}</span>
+          <h1 class="text-2xl md:text-3xl font-bold text-main m-0">{{ t('telemetry.name') }}</h1>
+          <p class="subtitle text-xs text-muted mt-1 mb-0" role="status">
+            {{ t('telemetry.catalog.summary', { total: totalCount, offline: offlineCount }) }}
           </p>
         </div>
 
-        <!-- Action Button: Vincular Contenedor (MBA-29) -->
+        <!-- Action Button: Link container (MBA-29) -->
         <div class="header-action">
           <pv-button
-            label="Vincular contenedor"
+            :label="t('telemetry.catalog.link-action')"
             icon="pi pi-link"
             class="btn-link-container px-4 py-2 text-xs border-round-pill font-bold shadow-1"
             @click="isLinkWizardVisible = true"
@@ -176,38 +190,35 @@ function getStatusLabel(container) {
 
       <!-- Filter Tabs & View Switcher Bar -->
       <div class="toolbar-panel flex flex-column sm:flex-row sm:align-items-center justify-content-between gap-3">
-        <!-- Status Filter Pills con pill-tabs -->
-        <pill-tabs
-          v-model="activeFilter"
-          :options="[
-            { label: `Todos (${totalCount})`, value: 'all' },
-            { label: `En línea (${onlineCount})`, value: 'online' },
-            { label: `Sin conexión (${offlineCount})`, value: 'offline' },
-            { label: `En ruta (${enRouteCount})`, value: 'en-route' }
-          ]"
-        />
+        <pill-tabs v-model="activeFilter" :options="filterOptions" :aria-label="t('telemetry.catalog.filter-label')" />
 
-        <!-- View Switcher (Table vs Grid) con pill-tabs segmented -->
         <pill-tabs
           v-model="displayFormat"
           variant="segmented"
-          :options="[
-            { icon: 'pi pi-bars', value: 'table', label: '' },
-            { icon: 'pi pi-th-large', value: 'grid', label: '' }
-          ]"
+          :options="formatOptions"
+          :aria-label="t('telemetry.catalog.view-label')"
         />
       </div>
 
       <!-- Loading / Empty states -->
-      <div v-if="telemetryStore.loading && !filteredContainers.length" class="empty-state p-5 text-center text-muted">
-        <i class="pi pi-spin pi-spinner text-2xl text-teal mb-2"></i>
-        <p class="text-xs m-0">Sincronizando contenedores IoT con el centro de control...</p>
+      <div
+        v-if="telemetryStore.loading && !filteredContainers.length"
+        class="empty-state p-5 text-center text-muted"
+        role="status"
+        aria-live="polite"
+      >
+        <i class="pi pi-spin pi-spinner text-2xl text-teal mb-2" aria-hidden="true"></i>
+        <p class="text-xs m-0">{{ t('telemetry.catalog.loading') }}</p>
       </div>
 
-      <div v-else-if="!filteredContainers.length" class="empty-state p-5 text-center text-muted bg-white border-round-2xl border-subtle">
-        <i class="pi pi-info-circle text-2xl text-muted mb-2"></i>
-        <p class="text-sm font-semibold text-main m-0">No se encontraron SmartBoxes para este filtro.</p>
-        <pv-button label="Restablecer filtros" text class="mt-2 text-xs" @click="activeFilter = 'all'" />
+      <div
+        v-else-if="!filteredContainers.length"
+        class="empty-state p-5 text-center text-muted bg-white border-round-2xl border-subtle"
+        role="status"
+      >
+        <i class="pi pi-info-circle text-2xl text-muted mb-2" aria-hidden="true"></i>
+        <p class="text-sm font-semibold text-main m-0">{{ t('telemetry.catalog.empty') }}</p>
+        <pv-button :label="t('telemetry.catalog.reset-filters')" text class="mt-2 text-xs" @click="activeFilter = 'all'" />
       </div>
 
       <!-- ================= OPTION A: TABLE VIEW (EXACT MBA-29) ================= -->
@@ -216,71 +227,67 @@ function getStatusLabel(container) {
         :value="filteredContainers"
         :paginator="false"
         min-width="45rem"
+        :aria-label="t('telemetry.catalog.table-label')"
         @row-click="selectContainerForDetail($event.data)"
       >
-        <!-- SMARTBOX -->
-        <pv-column field="id" header="SMARTBOX">
+        <pv-column field="id" :header="t('telemetry.column.smartbox')">
           <template #body="{ data }">
             <span class="box-id-badge font-bold text-main">{{ data.id }}</span>
           </template>
         </pv-column>
 
-        <!-- AMBULANCIA -->
-        <pv-column field="ambulancePlate" header="AMBULANCIA">
+        <pv-column field="ambulancePlate" :header="t('telemetry.column.ambulance')">
           <template #body="{ data }">
             <span class="text-muted font-medium">{{ data.ambulancePlate || '—' }}</span>
           </template>
         </pv-column>
 
-        <!-- TEMPERATURA -->
-        <pv-column field="currentTemperature" header="TEMPERATURA">
+        <pv-column field="currentTemperature" :header="t('telemetry.column.temperature')">
           <template #body="{ data }">
             <span class="font-bold text-main">
-              {{ data.status === 'offline' ? '—' : `${data.currentTemperature.toFixed(1).replace('.', ',')} °C` }}
+              {{ data.status === 'offline' ? '—' : formatTemperature(data.currentTemperature) }}
             </span>
           </template>
         </pv-column>
 
-        <!-- BATERÍA -->
-        <pv-column field="batteryLevel" header="BATERÍA">
+        <pv-column field="batteryLevel" :header="t('telemetry.column.battery')">
           <template #body="{ data }">
             <battery-gauge :level="data.batteryLevel" variant="capsule" />
           </template>
         </pv-column>
 
-        <!-- CONECTIVIDAD -->
-        <pv-column header="CONECTIVIDAD">
+        <pv-column :header="t('telemetry.column.connectivity')">
           <template #body="{ data }">
             <span
               class="tag-conn text-xs font-semibold px-3 py-1 border-round-pill inline-flex align-items-center gap-1"
               :class="data.status !== 'offline' ? 'conn-on' : 'conn-off'"
             >
-              <span class="dot-indicator" :class="data.status !== 'offline' ? 'dot-green' : 'dot-gray'"></span>
-              {{ data.status !== 'offline' ? 'En línea' : 'Sin conexión' }}
+              <span class="dot-indicator" :class="data.status !== 'offline' ? 'dot-green' : 'dot-gray'" aria-hidden="true"></span>
+              {{ data.status !== 'offline' ? t('telemetry.connectivity.online') : t('telemetry.connectivity.offline') }}
             </span>
           </template>
         </pv-column>
 
-        <!-- ESTADO -->
-        <pv-column header="ESTADO">
+        <pv-column :header="t('telemetry.column.state')">
           <template #body="{ data }">
             <span
               class="tag-state text-xs font-semibold px-3 py-1 border-round-pill inline-flex align-items-center gap-1"
-              :class="getStatusBadgeClass(data)"
+              :class="stateBadgeClass[containerState(data).key]"
             >
-              <span class="dot-indicator"></span>
-              {{ getStatusLabel(data) }}
+              <span class="dot-indicator" aria-hidden="true"></span>
+              {{ containerState(data).label }}
             </span>
           </template>
         </pv-column>
       </app-data-table>
 
       <!-- ================= OPTION B: GRID VIEW (CARDS) ================= -->
-      <div v-else class="catalog-grid grid m-0 gap-3">
+      <div v-else class="catalog-grid grid m-0 gap-3" role="list">
         <div
           v-for="c in filteredContainers"
           :key="c.id"
           class="col-12 sm:col-6 lg:col-4 xl:col-3 p-0"
+          role="listitem"
         >
           <container-card
             :container="c"
