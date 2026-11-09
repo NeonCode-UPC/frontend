@@ -1,4 +1,5 @@
 import { SmartContainer } from "../domain/smart-container.entity.js";
+import { TelemetryLog } from "../domain/telemetry-log.entity.js";
 import { SmartContainerResource } from "./smart-container.resource.js";
 
 /**
@@ -37,13 +38,16 @@ export class SmartContainerAssembler {
             is12vConnected: entity.is12vConnected,
             lastTelemetryAt: entity.lastTelemetryAt,
             createdAt: entity.createdAt,
-            updatedAt: new Date().toISOString(),
+            updatedAt: TelemetryLog.currentTimestamp(),
             model: entity.model,
             ambulancePlate: entity.ambulancePlate,
+            assignedAmbulancePlate: entity.ambulancePlate,
             currentTransferId: entity.currentTransferId,
             currentTemperature: entity.currentTemperature,
             targetMinTemperature: entity.targetMinTemperature,
             targetMaxTemperature: entity.targetMaxTemperature,
+            warningTemperature: entity.warningTemperature,
+            batteryWarningPercentage: entity.batteryWarningPercentage,
             batteryLevel: entity.batteryLevel,
             lidStatus: entity.lidStatus,
             netWeight: entity.netWeight,
@@ -51,7 +55,6 @@ export class SmartContainerAssembler {
             signalQuality: entity.signalQuality,
             location: entity.location,
             status: entity.status,
-            lastPing: entity.lastPing,
             unitWeight: entity.unitWeight,
             estimatedUnits: entity.estimatedUnits,
             movements: entity.movements
@@ -65,14 +68,19 @@ export class SmartContainerAssembler {
      * @returns {SmartContainer[]}
      */
     static toEntitiesFromResponse(response) {
-        if (!response || response.status !== 200) {
+        if (!response || (response.status !== 200 && response.status !== 201)) {
             console.error(response ? `Status: ${response.status}` : 'No response');
             return [];
         }
 
-        const resources = Array.isArray(response.data)
-            ? response.data
-            : response.data['smart-containers'] || [];
+        let resources = [];
+        if (Array.isArray(response.data)) {
+            resources = response.data;
+        } else if (response.data && Array.isArray(response.data['smart-containers'])) {
+            resources = response.data['smart-containers'];
+        } else if (response.data && typeof response.data === 'object') {
+            resources = [response.data];
+        }
 
         return resources.map(resource => this.toEntityFromResource(resource));
     }
