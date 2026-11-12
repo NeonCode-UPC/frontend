@@ -1,33 +1,15 @@
 import { BaseApi } from "../../shared/infrastructure/base-api.js";
 import { BaseEndpoint } from "../../shared/infrastructure/base-endpoint.js";
 
-const rawBaseUrl =
-    import.meta.env?.VITE_TELEMETRY_API_URL ||
-    import.meta.env?.VITE_API_URL ||
-    'http://localhost:5261';
-
-// Normalizes base URL: strips trailing /api/v1 so endpoints can consistently target /api/v1/...
-const normalizedBaseUrl = String(rawBaseUrl).replace(/\/api\/v1\/?$/, '');
-
 const containersEndpointPath =
-    import.meta.env?.VITE_CONTAINERS_ENDPOINT_PATH || '/api/v1/smart-containers';
+    import.meta.env?.VITE_CONTAINERS_ENDPOINT_PATH || '/smart-containers';
 
 const telemetryEndpointPath =
-    import.meta.env?.VITE_TELEMETRY_ENDPOINT_PATH || '/api/v1/telemetry-logs';
-
-/**
- * Ensures a path starts with /api/v1 for backend REST contract compliance.
- * @param {string} path
- * @returns {string}
- */
-function ensureApiPrefix(path) {
-    if (!path.startsWith('/')) path = `/${path}`;
-    return path.startsWith('/api/v1') ? path : `/api/v1${path}`;
-}
+    import.meta.env?.VITE_TELEMETRY_ENDPOINT_PATH || '/telemetry-logs';
 
 /**
  * Infrastructure API client for the Smart Container & Telemetry Monitoring bounded context.
- * Connects directly to the ASP.NET Core REST API with full endpoint lifecycle operations.
+ * Extends BaseApi (which configures the `/api/v1` base URL) and exposes endpoint lifecycle operations.
  *
  * @class TelemetryApi
  * @extends BaseApi
@@ -35,15 +17,11 @@ function ensureApiPrefix(path) {
 export class TelemetryApi extends BaseApi {
     #containersEndpoint;
     #telemetryEndpoint;
-    #containersPath;
-    #telemetryPath;
 
-    constructor(baseURL = normalizedBaseUrl) {
-        super(baseURL);
-        this.#containersPath = ensureApiPrefix(containersEndpointPath);
-        this.#telemetryPath = ensureApiPrefix(telemetryEndpointPath);
-        this.#containersEndpoint = new BaseEndpoint(this, this.#containersPath);
-        this.#telemetryEndpoint = new BaseEndpoint(this, this.#telemetryPath);
+    constructor() {
+        super();
+        this.#containersEndpoint = new BaseEndpoint(this, containersEndpointPath);
+        this.#telemetryEndpoint = new BaseEndpoint(this, telemetryEndpointPath);
     }
 
     /**
@@ -54,7 +32,7 @@ export class TelemetryApi extends BaseApi {
      * @returns {Promise<import('axios').AxiosResponse>}
      */
     getContainers(params = {}) {
-        return this.http.get(this.#containersPath, { params });
+        return this.http.get(containersEndpointPath, { params });
     }
 
     /**
@@ -72,7 +50,7 @@ export class TelemetryApi extends BaseApi {
      * @returns {Promise<import('axios').AxiosResponse>}
      */
     getContainerBySerialNumber(serialNumber) {
-        return this.http.get(`${this.#containersPath}/serial/${encodeURIComponent(serialNumber)}`);
+        return this.http.get(`${containersEndpointPath}/serial/${encodeURIComponent(serialNumber)}`);
     }
 
     /**
@@ -91,7 +69,7 @@ export class TelemetryApi extends BaseApi {
      * @returns {Promise<import('axios').AxiosResponse>}
      */
     pairContainer(id, ambulancePlate) {
-        return this.http.post(`${this.#containersPath}/${encodeURIComponent(id)}/pair`, { ambulancePlate });
+        return this.http.post(`${containersEndpointPath}/${encodeURIComponent(id)}/pair`, { ambulancePlate });
     }
 
     /**
@@ -100,7 +78,7 @@ export class TelemetryApi extends BaseApi {
      * @returns {Promise<import('axios').AxiosResponse>}
      */
     unlinkContainer(id) {
-        return this.http.post(`${this.#containersPath}/${encodeURIComponent(id)}/unlink`);
+        return this.http.post(`${containersEndpointPath}/${encodeURIComponent(id)}/unlink`);
     }
 
     /**
@@ -110,7 +88,7 @@ export class TelemetryApi extends BaseApi {
      * @returns {Promise<import('axios').AxiosResponse>}
      */
     recordWeightMovement(id, movementData) {
-        return this.http.post(`${this.#containersPath}/${encodeURIComponent(id)}/weight-movements`, movementData);
+        return this.http.post(`${containersEndpointPath}/${encodeURIComponent(id)}/weight-movements`, movementData);
     }
 
     /**
@@ -120,7 +98,7 @@ export class TelemetryApi extends BaseApi {
      * @returns {Promise<import('axios').AxiosResponse>}
      */
     recordContainerTelemetrySnapshot(id, snapshotData) {
-        return this.http.post(`${this.#containersPath}/${encodeURIComponent(id)}/telemetry-snapshot`, snapshotData);
+        return this.http.post(`${containersEndpointPath}/${encodeURIComponent(id)}/telemetry-snapshot`, snapshotData);
     }
 
     /**
@@ -141,7 +119,7 @@ export class TelemetryApi extends BaseApi {
      * @returns {Promise<import('axios').AxiosResponse>}
      */
     getTelemetryLogs(params = {}) {
-        return this.http.get(this.#telemetryPath, { params });
+        return this.http.get(telemetryEndpointPath, { params });
     }
 
     /**
@@ -159,7 +137,7 @@ export class TelemetryApi extends BaseApi {
      * @returns {Promise<import('axios').AxiosResponse>}
      */
     getTelemetryLogsByContainerId(containerId) {
-        return this.http.get(this.#telemetryPath, {
+        return this.http.get(telemetryEndpointPath, {
             params: { containerId }
         });
     }
@@ -170,7 +148,7 @@ export class TelemetryApi extends BaseApi {
      * @returns {Promise<import('axios').AxiosResponse>}
      */
     getTelemetryLogsByTripId(tripId) {
-        return this.http.get(this.#telemetryPath, {
+        return this.http.get(telemetryEndpointPath, {
             params: { tripId }
         });
     }
@@ -181,7 +159,7 @@ export class TelemetryApi extends BaseApi {
      * @returns {Promise<import('axios').AxiosResponse>}
      */
     getLatestTelemetryLog(containerId) {
-        return this.http.get(`${this.#telemetryPath}/containers/${encodeURIComponent(containerId)}/latest`);
+        return this.http.get(`${telemetryEndpointPath}/containers/${encodeURIComponent(containerId)}/latest`);
     }
 
     /**

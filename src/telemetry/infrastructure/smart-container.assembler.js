@@ -47,6 +47,7 @@ export class SmartContainerAssembler {
             targetMinTemperature: entity.targetMinTemperature,
             targetMaxTemperature: entity.targetMaxTemperature,
             warningTemperature: entity.warningTemperature,
+            excursionToleranceSeconds: entity.excursionToleranceSeconds,
             batteryWarningPercentage: entity.batteryWarningPercentage,
             batteryLevel: entity.batteryLevel,
             lidStatus: entity.lidStatus,

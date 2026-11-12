@@ -48,7 +48,7 @@ onMounted(async () => {
 
   // If query specifies container, open its detail immediately
   if (route.query.container) {
-    const found = telemetryStore.containers.find(c => c.id === route.query.container);
+    const found = telemetryStore.findContainer(route.query.container);
     if (found) {
       telemetryStore.selectContainer(found);
       currentMode.value = 'detail';
@@ -59,7 +59,7 @@ onMounted(async () => {
 // Watch route query changes
 watch(() => route.query.container, (newId) => {
   if (newId) {
-    const found = telemetryStore.containers.find(c => c.id === newId);
+    const found = telemetryStore.findContainer(newId);
     if (found) {
       telemetryStore.selectContainer(found);
       currentMode.value = 'detail';
@@ -77,7 +77,9 @@ const filteredContainers = computed(() => {
   const query = searchQuery.value?.trim().toLowerCase();
   if (query) {
     list = list.filter(c =>
-      c.id?.toLowerCase().includes(query) ||
+      String(c.displayCode ?? '').toLowerCase().includes(query) ||
+      String(c.id ?? '').toLowerCase().includes(query) ||
+      String(c.serialNumber ?? '').toLowerCase().includes(query) ||
       c.ambulancePlate?.toLowerCase().includes(query) ||
       c.model?.toLowerCase().includes(query) ||
       c.location?.toLowerCase().includes(query) ||
@@ -118,7 +120,7 @@ const formatOptions = computed(() => [
 function selectContainerForDetail(container) {
   telemetryStore.selectContainer(container);
   currentMode.value = 'detail';
-  router.push({ path: '/telemetry', query: { container: container.id } });
+  router.push({ path: '/telemetry', query: { container: container.displayCode || container.id } });
 }
 
 function handleBackToList() {
@@ -134,10 +136,11 @@ function openWeightModal(container) {
 async function handleConfirmWithdrawal(payload) {
   try {
     await telemetryStore.recordWeightMovement(new RecordWeightWithdrawalCommand(payload));
+    const displayId = telemetryStore.findContainer(payload.containerId)?.displayCode || payload.containerId;
     toast.add({
       severity: 'success',
       summary: t('telemetry.toast.withdrawal-summary'),
-      detail: t('telemetry.toast.withdrawal-detail', { id: payload.containerId }),
+      detail: t('telemetry.toast.withdrawal-detail', { id: displayId }),
       life: 4000
     });
   } catch {
@@ -146,10 +149,11 @@ async function handleConfirmWithdrawal(payload) {
 }
 
 function handleContainerLinked(payload) {
+  const displayId = telemetryStore.findContainer(payload.containerId)?.displayCode || payload.containerId;
   toast.add({
     severity: 'success',
     summary: t('telemetry.toast.linked-summary'),
-    detail: t('telemetry.toast.linked-detail', { id: payload.containerId, plate: payload.ambulancePlate }),
+    detail: t('telemetry.toast.linked-detail', { id: displayId, plate: payload.ambulancePlate }),
     life: 4000
   });
   telemetryStore.fetchContainers();
@@ -230,9 +234,9 @@ const stateBadgeClass = {
         :aria-label="t('telemetry.catalog.table-label')"
         @row-click="selectContainerForDetail($event.data)"
       >
-        <pv-column field="id" :header="t('telemetry.column.smartbox')">
+        <pv-column field="displayCode" :header="t('telemetry.column.smartbox')">
           <template #body="{ data }">
-            <span class="box-id-badge font-bold text-main">{{ data.id }}</span>
+            <span class="box-id-badge font-bold text-main">{{ data.displayCode }}</span>
           </template>
         </pv-column>
 
@@ -313,7 +317,7 @@ const stateBadgeClass = {
     <!-- Modal 1: Link Container Wizard (MBA-33, 34, 35) -->
     <link-container-wizard
       v-model:visible="isLinkWizardVisible"
-      :preselected-container-id="telemetryStore.selectedContainer?.id"
+      :preselected-container-id="telemetryStore.selectedContainer?.id ?? ''"
       @linked="handleContainerLinked"
     />
 

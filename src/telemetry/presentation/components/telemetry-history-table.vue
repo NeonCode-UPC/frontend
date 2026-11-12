@@ -6,8 +6,12 @@ import { useTelemetryFormat } from '../composables/use-telemetry-format.js';
 import TelemetryChart from './telemetry-chart.vue';
 
 const props = defineProps({
+  container: {
+    type: Object,
+    default: null
+  },
   containerId: {
-    type: String,
+    type: [String, Number],
     required: true
   },
   transferId: {
@@ -37,7 +41,7 @@ const timeWindows = [
 
 // Logs of this container, newest first
 const sourceLogs = computed(() => props.logs
-  .filter(log => log.containerId === props.containerId)
+  .filter(log => (props.container ? props.container.ownsTelemetryLog(log) : String(log.containerId) === String(props.containerId)))
   .slice()
   .sort((a, b) => String(b.timestampUtc).localeCompare(String(a.timestampUtc))));
 

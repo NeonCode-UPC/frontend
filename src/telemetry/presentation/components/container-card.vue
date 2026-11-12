@@ -52,7 +52,7 @@ function handleCardClick() {
 
 function navigateToLive(e) {
   e.stopPropagation();
-  router.push({ path: '/telemetry/live', query: { container: props.container.id } });
+  router.push({ path: '/telemetry/live', query: { container: props.container.displayCode || props.container.id } });
 }
 </script>
 
@@ -62,7 +62,7 @@ function navigateToLive(e) {
     :class="{ 'card-selected': isSelected }"
     tabindex="0"
     role="button"
-    :aria-label="t('telemetry.card.aria', { id: container.id, state: state.label })"
+    :aria-label="t('telemetry.card.aria', { id: container.displayCode, state: state.label })"
     :aria-pressed="isSelected"
     @click="handleCardClick"
     @keydown.enter="handleCardClick"
@@ -74,7 +74,7 @@ function navigateToLive(e) {
           <i class="pi pi-box text-sm"></i>
         </div>
         <div>
-          <h3 class="box-id text-base font-bold m-0">{{ container.id }}</h3>
+          <h3 class="box-id text-base font-bold m-0">{{ container.displayCode }}</h3>
           <span class="box-model text-xs">{{ container.model }}</span>
         </div>
       </div>
@@ -172,7 +172,7 @@ function navigateToLive(e) {
           text
           size="small"
           class="p-button-arrow"
-          :aria-label="t('telemetry.card.open-detail', { id: container.id })"
+          :aria-label="t('telemetry.card.open-detail', { id: container.displayCode })"
           @click.stop="handleCardClick"
         />
       </div>

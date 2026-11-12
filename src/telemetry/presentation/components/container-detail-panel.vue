@@ -2,6 +2,7 @@
 import { ref, computed, onMounted, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
+import { useToast } from 'primevue/usetoast';
 import { useTelemetryStore } from '../../application/telemetry.store.js';
 import { UnlinkContainerCommand } from '../../domain/unlink-container.command.js';
 import { ConfigureThermalThresholdsCommand } from '../../domain/configure-thermal-thresholds.command.js';
@@ -21,6 +22,7 @@ const props = defineProps({
 const emit = defineEmits(['back', 'open-withdrawal-modal', 'unlinked']);
 const router = useRouter();
 const { t } = useI18n();
+const toast = useToast();
 const telemetryStore = useTelemetryStore();
 const {
   formatNumber, formatTemperature, formatKilograms, formatWeightDiff, movementDescription
@@ -52,7 +54,7 @@ onMounted(loadLogs);
 watch(() => props.container.id, loadLogs);
 
 const chartPoints = computed(() => telemetryStore.telemetryLogs
-  .filter(log => log.containerId === props.container.id)
+  .filter(log => props.container.ownsTelemetryLog(log))
   .slice()
   .sort((a, b) => String(a.timestampUtc).localeCompare(String(b.timestampUtc)))
   .slice(-7)
@@ -122,14 +124,23 @@ const movements = computed(() => [...(props.container.movements || [])].reverse(
 const lastMovement = computed(() => movements.value.find(m => m.type !== 'initial') || null);
 
 function navigateToLive() {
-  router.push({ path: '/telemetry/live', query: { container: props.container.id } });
+  router.push({ path: '/telemetry/live', query: { container: props.container.displayCode || props.container.id } });
 }
 
 async function handleUnlink() {
-  const message = t('telemetry.detail.unlink-confirm', { id: props.container.id, plate: props.container.ambulancePlate });
+  const message = t('telemetry.detail.unlink-confirm', { id: props.container.displayCode, plate: props.container.ambulancePlate });
   if (!window.confirm(message)) return;
-  await telemetryStore.unlinkContainer(new UnlinkContainerCommand({ containerId: props.container.id }));
-  emit('unlinked', props.container.id);
+  try {
+    await telemetryStore.unlinkContainer(new UnlinkContainerCommand({ containerId: props.container.id }));
+    emit('unlinked', props.container.id);
+  } catch {
+    toast.add({
+      severity: 'error',
+      summary: t('telemetry.toast.error-summary'),
+      detail: t('telemetry.toast.error-detail'),
+      life: 4000
+    });
+  }
 }
 
 function openEditRules() {
@@ -170,11 +181,11 @@ async function saveRules() {
             {{ t('telemetry.name') }}
           </button>
           <span aria-hidden="true">/</span>
-          <strong class="text-main" aria-current="page">{{ container.id }}</strong>
+          <strong class="text-main" aria-current="page">{{ container.displayCode }}</strong>
         </nav>
 
         <div class="flex align-items-center gap-3">
-          <h1 class="text-2xl md:text-3xl font-bold text-main m-0">{{ t('telemetry.detail.title', { id: container.id }) }}</h1>
+          <h1 class="text-2xl md:text-3xl font-bold text-main m-0">{{ t('telemetry.detail.title', { id: container.displayCode }) }}</h1>
           <span
             class="status-pill text-xs font-semibold px-3 py-1 border-round-pill flex align-items-center gap-1"
             :class="isOnline ? 'pill-online' : 'pill-offline'"

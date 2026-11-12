@@ -38,10 +38,11 @@ const isAcknowledging = ref(false);
 
 onMounted(async () => {
   await store.fetchContainers();
-  selectedContainerId.value = route.query.container || store.selectedContainer?.id || store.containers[0]?.id || null;
+  const queryMatch = route.query.container ? store.findContainer(route.query.container) : null;
+  selectedContainerId.value = queryMatch?.id ?? store.selectedContainer?.id ?? store.containers[0]?.id ?? null;
 });
 
-const baseContainer = computed(() => store.containers.find(c => c.id === selectedContainerId.value) || null);
+const baseContainer = computed(() => store.findContainer(selectedContainerId.value) || null);
 
 // Current container, with a simulated reading above the upper threshold when the simulation is on
 const currentContainer = computed(() => {
@@ -55,7 +56,7 @@ const offlineContainer = computed(() => store.containers.find(c => c.status === 
 
 const excursionStartedAt = computed(() => {
   if (isSimulatedExcursion.value) return simulatedAt.value;
-  const firstOut = store.telemetryLogs.find(log => log.containerId === selectedContainerId.value && log.isThermalExcursion);
+  const firstOut = store.telemetryLogs.find(log => currentContainer.value?.ownsTelemetryLog(log) && log.isThermalExcursion);
   return firstOut?.timestampUtc || null;
 });
 
@@ -68,11 +69,11 @@ const viewModes = computed(() => [
 
 // React to container change
 watch(selectedContainerId, async (newId) => {
-  if (!newId) return;
+  if (newId === null || newId === undefined || newId === '') return;
   isSimulatedExcursion.value = false;
   isAcknowledged.value = false;
   await store.fetchTelemetryLogs(newId);
-  const cont = store.containers.find(c => c.id === newId);
+  const cont = store.findContainer(newId);
   if (cont?.status === 'offline') {
     activeViewMode.value = 'offline';
   } else if (cont?.thermalState === 'critical') {
@@ -91,7 +92,7 @@ function toggleExcursionSimulation() {
       severity: 'error',
       summary: t('telemetry.toast.excursion-summary'),
       detail: t('telemetry.toast.excursion-detail', {
-        id: currentContainer.value.id,
+        id: currentContainer.value.displayCode,
         temp: formatTemperature(currentContainer.value.currentTemperature)
       }),
       life: 5000
@@ -102,7 +103,7 @@ function toggleExcursionSimulation() {
       severity: 'success',
       summary: t('telemetry.toast.stabilized-summary'),
       detail: t('telemetry.toast.stabilized-detail', {
-        id: baseContainer.value.id,
+        id: baseContainer.value.displayCode,
         temp: formatTemperature(baseContainer.value.currentTemperature)
       }),
       life: 3500
@@ -130,7 +131,7 @@ function handleRetryConnection() {
   toast.add({
     severity: 'info',
     summary: t('telemetry.toast.retry-summary'),
-    detail: t('telemetry.toast.retry-detail', { id: offlineContainer.value?.id }),
+    detail: t('telemetry.toast.retry-detail', { id: offlineContainer.value?.displayCode || offlineContainer.value?.id }),
     life: 3000
   });
   store.fetchContainers();
@@ -163,7 +164,7 @@ function handleRetryConnection() {
           v-model="selectedContainerId"
           input-id="live-container-select"
           :options="store.containers"
-          option-label="id"
+          option-label="displayCode"
           option-value="id"
           :placeholder="t('telemetry.live.select-container')"
           class="text-xs"
@@ -208,7 +209,8 @@ function handleRetryConnection() {
       <!-- MBA-53: History -->
       <telemetry-history-table
         v-else-if="activeViewMode === 'history'"
-        :container-id="currentContainer.id"
+        :container="currentContainer"
+        :container-id="currentContainer.displayCode"
         :transfer-id="currentContainer.currentTransferId || ''"
         :thresholds="currentContainer.thermalThresholds"
         :logs="store.telemetryLogs"
@@ -217,7 +219,7 @@ function handleRetryConnection() {
       <!-- MBA-54: Connection states -->
       <offline-state-banner
         v-else-if="activeViewMode === 'offline'"
-        :container-id="currentContainer.id"
+        :container-id="currentContainer.displayCode"
         :offline-container="offlineContainer"
         :last-reading-at="currentContainer.lastTelemetryAt"
         mode="gallery"
@@ -234,7 +236,7 @@ function handleRetryConnection() {
     >
       <div v-if="currentContainer" class="flex flex-column gap-3">
         <div class="p-3 border-round-xl bg-red-50 border-1 border-red-200 text-xs" role="alert">
-          <strong class="text-red-700 block mb-1">{{ t('telemetry.acknowledge.box', { id: currentContainer.id }) }}</strong>
+          <strong class="text-red-700 block mb-1">{{ t('telemetry.acknowledge.box', { id: currentContainer.displayCode }) }}</strong>
           <span class="text-red-600">
             {{ t('telemetry.acknowledge.detail', {
               temp: formatTemperature(currentContainer.currentTemperature),
