@@ -116,7 +116,7 @@ export const useCustodyStore = defineStore('custody', {
         this.auditEvents = auditEventsResult.data;
         this.initialized = true;
       } catch (error) {
-        this.error = `${messageFrom(error)} Verifica que la API esté activa en http://localhost:5261.`;
+        this.error = messageFrom(error);
       } finally {
         this.loading = false;
       }
