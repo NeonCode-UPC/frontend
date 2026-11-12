@@ -1,357 +1,302 @@
 <script setup>
 import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
+import { useTelemetryFormat } from '../composables/use-telemetry-format.js';
 import TelemetryChart from './telemetry-chart.vue';
 
 const props = defineProps({
   container: {
     type: Object,
-    default: () => ({
-      id: 'SB-0182',
-      serialNumber: 'MAC-7C9EBD0182',
-      currentTemperature: 9.2,
-      batteryLevel: 82,
-      lidStatus: 'closed',
-      status: 'critical'
-    })
+    required: true
   },
-  transferId: {
+  logs: {
+    type: Array,
+    default: () => []
+  },
+  /** ISO timestamp of the reading that started the excursion. */
+  excursionStartedAt: {
     type: String,
-    default: 'TR-0417'
+    default: null
   },
-  routePath: {
-    type: String,
-    default: 'TR-0417 · Lima → Arequipa'
-  },
-  incidentCode: {
-    type: String,
-    default: 'INC-0312'
-  },
-  currentTemp: {
-    type: Number,
-    default: 9.2
-  },
-  baselineTemp: {
-    type: Number,
-    default: 4.2
-  },
-  excursionStartTime: {
-    type: String,
-    default: '14:35'
-  },
-  elapsedMinutes: {
-    type: Number,
-    default: 8
-  },
-  location: {
-    type: String,
-    default: 'Km 312 · Panamericana Sur'
-  },
-  eta: {
-    type: String,
-    default: '15:20'
-  },
-  etaDelay: {
-    type: String,
-    default: '+45 min'
-  },
-  ambulancePlate: {
-    type: String,
-    default: 'ABQ-742'
-  },
-  coldIschemiaElapsed: {
-    type: String,
-    default: '4 h 05 min'
-  },
-  coldIschemiaLimit: {
-    type: String,
-    default: 'límite 6 h'
-  },
-  coldIschemiaPercent: {
-    type: Number,
-    default: 68
-  },
-  vialsCount: {
-    type: Number,
-    default: 24
+  acknowledged: {
+    type: Boolean,
+    default: false
   }
 });
 
-const emit = defineEmits([
-  'acknowledge',
-  'contact-cabin',
-  'view-incident',
-  'view-transfer'
-]);
+const emit = defineEmits(['acknowledge', 'view-incident', 'view-transfer']);
+const { t } = useI18n();
+const { formatNumber, formatTemperature, formatDateTime } = useTelemetryFormat();
 
-// Excursion Chart Data matching MBA-50 (14:00 4.2°C -> 14:15 4.5°C -> 14:30 6.8°C -> 14:35 8.7°C -> 14:43 9.2°C)
-const excursionChartData = computed(() => [
-  { time: '14:00', temperature: 4.2 },
-  { time: '14:15', temperature: 4.8 },
-  { time: '14:30', temperature: 6.9 },
-  { time: '14:35', temperature: 8.7, isExcursion: true },
-  { time: '14:43', temperature: props.currentTemp || 9.2, isExcursion: true }
-]);
+const thresholds = computed(() => props.container.thermalThresholds);
+const thermalState = computed(() => props.container.thermalState);
+const isOutOfRange = computed(() => !thresholds.value.isInRange(props.container.currentTemperature));
 
-const formattedCurrentTemp = computed(() => {
-  return `${(props.currentTemp || 9.2).toFixed(1).replace('.', ',')} °C`;
+const timeLabel = (iso) => {
+  const match = String(iso || '').match(/T(\d{2}:\d{2})/);
+  return match ? match[1] : '';
+};
+
+// Recent readings of this container plus the current one (chronological)
+const excursionChartData = computed(() => {
+  const recent = props.logs
+    .filter(log => log.containerId === props.container.id)
+    .slice()
+    .sort((a, b) => String(a.timestampUtc).localeCompare(String(b.timestampUtc)))
+    .slice(-4)
+    .map(log => ({ time: log.time, temperature: log.temperatureCelsius }));
+  const last = recent[recent.length - 1];
+  if (!last || last.temperature !== props.container.currentTemperature) {
+    recent.push({
+      time: timeLabel(props.excursionStartedAt || props.container.lastTelemetryAt),
+      temperature: props.container.currentTemperature,
+      isExcursion: isOutOfRange.value
+    });
+  }
+  return recent;
 });
 
-const formattedBaselineTemp = computed(() => {
-  return `${props.baselineTemp.toFixed(1).replace('.', ',')} °C`;
+const baselineTemp = computed(() => excursionChartData.value[0]?.temperature ?? props.container.currentTemperature);
+
+const elapsedMinutes = computed(() => {
+  if (!props.excursionStartedAt) return 0;
+  const wallClock = String(props.excursionStartedAt).replace(/\.\d+Z$|Z$/, '');
+  return Math.max(0, Math.round((Date.now() - new Date(wallClock).getTime()) / 60000));
+});
+
+// Range bar geometry: scale from (min - 2 °C) to (max + 2 °C)
+const scale = computed(() => ({ lo: thresholds.value.minCelsius - 2, hi: thresholds.value.maxCelsius + 2 }));
+const toPercent = (value) => {
+  const { lo, hi } = scale.value;
+  return Math.min(100, Math.max(0, ((value - lo) / (hi - lo)) * 100));
+};
+const safeZoneStyle = computed(() => ({
+  left: `${toPercent(thresholds.value.minCelsius)}%`,
+  width: `${toPercent(thresholds.value.maxCelsius) - toPercent(thresholds.value.minCelsius)}%`
+}));
+const pinStyle = computed(() => ({ left: `${toPercent(props.container.currentTemperature)}%` }));
+
+// Events derived from the readings
+const events = computed(() => {
+  const list = [];
+  const warning = excursionChartData.value.find(p => p.temperature >= thresholds.value.warningCelsius && thresholds.value.isInRange(p.temperature));
+  const critical = excursionChartData.value.find(p => !thresholds.value.isInRange(p.temperature));
+  if (critical) {
+    list.push({ time: critical.time, text: t('telemetry.excursion.event-detected'), badge: formatTemperature(critical.temperature), kind: 'danger' });
+  }
+  if (warning) {
+    list.push({ time: warning.time, text: t('telemetry.excursion.event-warning'), badge: formatTemperature(warning.temperature), kind: 'sms' });
+  }
+  list.unshift({
+    time: timeLabel(props.container.lastTelemetryAt) || excursionChartData.value.at(-1)?.time,
+    text: props.acknowledged ? t('telemetry.excursion.event-acknowledged') : t('telemetry.excursion.event-pending'),
+    badge: props.acknowledged ? t('telemetry.excursion.done') : t('telemetry.excursion.pending'),
+    kind: props.acknowledged ? 'sms' : 'pending'
+  });
+  return list;
 });
 </script>
 
 <template>
   <div class="thermal-excursion-alert flex flex-column gap-3">
-    <!-- Header: Title, Route and Critical Badge -->
     <div class="flex flex-column sm:flex-row sm:align-items-center justify-content-between gap-2">
       <div>
         <div class="breadcrumb-text mb-1">
-          Telemetría / <strong>{{ transferId }}</strong>
+          {{ t('telemetry.live.breadcrumb') }} / <strong>{{ container.currentTransferId || container.id }}</strong>
         </div>
         <h1 class="screen-title m-0">
-          Excursión térmica
+          {{ t('telemetry.excursion.title') }}
         </h1>
         <p class="subtitle-text m-0 mt-1">
-          {{ routePath }}
+          {{ container.id }} · {{ container.ambulancePlate || t('telemetry.detail.no-ambulance') }}
         </p>
       </div>
 
-      <!-- Critical Header Badge -->
       <div class="flex align-items-center">
         <span class="badge-critical-top">
-          <span class="dot"></span>
-          Crítica
+          <span class="dot" aria-hidden="true"></span>
+          {{ t(`telemetry.thermal.${thermalState}`) }}
         </span>
       </div>
     </div>
 
     <!-- Main Alert Card (MBA-50) -->
-    <div class="alert-card screen-card border-round-2xl p-4 relative overflow-hidden">
-      <!-- Left Red Accent Stripe -->
-      <div class="alert-left-accent"></div>
+    <section
+      class="alert-card screen-card border-round-2xl p-4 relative overflow-hidden"
+      :role="isOutOfRange ? 'alert' : 'region'"
+      :aria-live="isOutOfRange ? 'assertive' : undefined"
+      :aria-label="t('telemetry.excursion.title')"
+    >
+      <div class="alert-left-accent" aria-hidden="true"></div>
 
-      <!-- Card Top Sub-Header -->
       <div class="flex align-items-center justify-content-between mb-4 pl-2">
         <div class="flex align-items-center gap-3">
-          <div class="alert-icon-box flex align-items-center justify-content-center">
+          <div class="alert-icon-box flex align-items-center justify-content-center" aria-hidden="true">
             <i class="pi pi-exclamation-triangle text-lg text-white"></i>
           </div>
           <div>
             <h2 class="alert-banner-title m-0">
-              Temperatura sobre el rango esperado
+              {{ isOutOfRange ? t('telemetry.excursion.out-of-range') : t('telemetry.excursion.in-range') }}
             </h2>
             <p class="alert-banner-meta m-0 mt-1">
-              {{ transferId }} · {{ container.id || 'SB-0182' }} · desde {{ excursionStartTime }} · hace {{ elapsedMinutes }} min
+              {{ t('telemetry.excursion.meta', {
+                id: container.id,
+                since: formatDateTime(excursionStartedAt || container.lastTelemetryAt),
+                minutes: elapsedMinutes
+              }) }}
             </p>
           </div>
         </div>
 
         <span class="badge-critical-inner">
-          <span class="dot"></span>
-          Crítica
+          <span class="dot" aria-hidden="true"></span>
+          {{ t(`telemetry.thermal.${thermalState}`) }}
         </span>
       </div>
 
-      <!-- Card Body: Split Left (Metric & Range) + Right (Chart) -->
       <div class="grid m-0 align-items-center pl-2">
-        <!-- Left Section: Current Temp, Range Bar & Status Cards -->
         <div class="col-12 md:col-5 p-0 pr-0 md:pr-4 mb-3 md:mb-0">
-          <span class="metric-eyebrow">TEMPERATURA ACTUAL</span>
+          <span class="metric-eyebrow">{{ t('telemetry.excursion.current-temp') }}</span>
           <div class="temp-huge font-bold">
-            {{ formattedCurrentTemp }}
+            {{ formatTemperature(container.currentTemperature) }}
           </div>
           <span class="temp-delta-note">
-            desde {{ formattedBaselineTemp }}
+            {{ t('telemetry.excursion.from', { value: formatTemperature(baselineTemp) }) }}
           </span>
 
-          <!-- Range Bar Section -->
           <div class="range-bar-wrapper mt-3">
-            <span class="range-label mb-2 block">Rango permitido</span>
-            <div class="range-track-container relative">
-              <!-- Safe track with mint safe zone (2°C - 8°C) -->
+            <span id="excursion-range-label" class="range-label mb-2 block">{{ t('telemetry.excursion.allowed-range') }}</span>
+            <div
+              class="range-track-container relative"
+              role="meter"
+              aria-labelledby="excursion-range-label"
+              :aria-valuemin="scale.lo"
+              :aria-valuemax="scale.hi"
+              :aria-valuenow="container.currentTemperature"
+              :aria-valuetext="formatTemperature(container.currentTemperature)"
+            >
               <div class="range-track">
-                <div class="safe-zone" style="left: 10%; width: 68%;"></div>
+                <div class="safe-zone" :style="safeZoneStyle"></div>
               </div>
-              <!-- Excursion Indicator Pin at 9.2°C -->
-              <div class="range-pin-indicator" style="left: 88%;">
+              <div class="range-pin-indicator" :style="pinStyle">
                 <div class="pin-pill"></div>
               </div>
             </div>
             <div class="flex justify-content-between range-scale-labels mt-1">
-              <span>2,0 °C</span>
-              <span>8,0 °C</span>
+              <span>{{ formatTemperature(thresholds.minCelsius) }}</span>
+              <span>{{ formatTemperature(thresholds.maxCelsius) }}</span>
             </div>
           </div>
 
-          <!-- Sub-cards: Estado & Desde -->
-          <div class="grid m-0 mt-3">
+          <dl class="grid m-0 mt-3">
             <div class="col-6 p-0 pr-2">
               <div class="status-box screen-card p-2 border-round-xl">
-                <span class="box-label">Estado</span>
-                <span class="box-value text-critical font-bold">Fuera de rango</span>
+                <dt class="box-label">{{ t('telemetry.excursion.state') }}</dt>
+                <dd class="box-value font-bold m-0" :class="isOutOfRange ? 'text-critical' : 'text-main'">
+                  {{ isOutOfRange ? t('telemetry.excursion.out-of-range-short') : t('telemetry.thermal.normal') }}
+                </dd>
               </div>
             </div>
             <div class="col-6 p-0 pl-1">
               <div class="status-box screen-card p-2 border-round-xl">
-                <span class="box-label">Desde</span>
-                <span class="box-value text-main font-bold">{{ excursionStartTime }}</span>
+                <dt class="box-label">{{ t('telemetry.excursion.tolerance') }}</dt>
+                <dd class="box-value text-main font-bold m-0">{{ thresholds.excursionToleranceSeconds }} s</dd>
               </div>
             </div>
-          </div>
+          </dl>
         </div>
 
-        <!-- Right Section: Continuous Excursion Chart -->
         <div class="col-12 md:col-7 p-0 pl-0 md:pl-2">
           <div class="excursion-chart-box p-2 border-round-xl">
             <telemetry-chart
               :data="excursionChartData"
               :height="150"
-              :is-excursion="true"
+              :is-excursion="isOutOfRange"
               :show-x-axis="true"
-              :x-labels="['14:00', '14:15', '14:30', '14:43']"
+              :x-labels="excursionChartData.map(p => p.time)"
+              :safe-min="thresholds.minCelsius"
+              :safe-max="thresholds.maxCelsius"
               :interactive="true"
             />
           </div>
         </div>
       </div>
-    </div>
+    </section>
 
-    <!-- Bottom 3 Cards Grid -->
     <div class="grid m-0">
-      <!-- Card 1: Transporte afectado -->
+      <!-- Card 1: Affected container -->
       <div class="col-12 md:col-4 p-0 pr-0 md:pr-2 mb-2 md:mb-0">
-        <div class="info-card screen-card p-3 border-round-xl h-full flex flex-column justify-content-between">
-          <span class="info-card-title font-bold">Transporte afectado</span>
-          <div class="flex flex-column gap-2 my-2">
+        <section class="info-card screen-card p-3 border-round-xl h-full flex flex-column justify-content-between" :aria-label="t('telemetry.excursion.affected')">
+          <span class="info-card-title font-bold">{{ t('telemetry.excursion.affected') }}</span>
+          <dl class="flex flex-column gap-2 my-2">
             <div class="flex align-items-center justify-content-between text-xs">
-              <span class="text-muted">Ubicación</span>
-              <span class="text-main font-semibold">{{ location }}</span>
+              <dt class="text-muted">{{ t('telemetry.kpi.location') }}</dt>
+              <dd class="text-main font-semibold m-0">{{ container.location || '—' }}</dd>
             </div>
             <div class="flex align-items-center justify-content-between text-xs">
-              <span class="text-muted">ETA</span>
-              <div class="flex align-items-center gap-2">
-                <span class="text-main font-semibold">{{ eta }}</span>
-                <span class="badge-amber">{{ etaDelay }}</span>
-              </div>
+              <dt class="text-muted">{{ t('telemetry.card.ambulance') }}</dt>
+              <dd class="text-main font-semibold m-0">{{ container.ambulancePlate || '—' }}</dd>
             </div>
             <div class="flex align-items-center justify-content-between text-xs">
-              <span class="text-muted">Ambulancia</span>
-              <span class="text-main font-semibold">{{ ambulancePlate }}</span>
+              <dt class="text-muted">{{ t('telemetry.name') }}</dt>
+              <dd class="text-main font-semibold m-0">{{ t('telemetry.excursion.box-battery', { id: container.id, value: container.batteryLevel }) }}</dd>
             </div>
-            <div class="flex align-items-center justify-content-between text-xs">
-              <span class="text-muted">SmartBox</span>
-              <span class="text-main font-semibold">{{ container.id || 'SB-0182' }} · batería {{ container.batteryLevel ?? 82 }} %</span>
-            </div>
-          </div>
-        </div>
+          </dl>
+        </section>
       </div>
 
-      <!-- Card 2: Impacto en la carga -->
+      <!-- Card 2: Payload -->
       <div class="col-12 md:col-4 p-0 px-0 md:px-1 mb-2 md:mb-0">
-        <div class="info-card screen-card p-3 border-round-xl h-full flex flex-column justify-content-between">
-          <span class="info-card-title font-bold">Impacto en la carga</span>
+        <section class="info-card screen-card p-3 border-round-xl h-full flex flex-column justify-content-between" :aria-label="t('telemetry.excursion.payload')">
+          <span class="info-card-title font-bold">{{ t('telemetry.excursion.payload') }}</span>
           <div class="my-2">
             <div class="ischemia-huge font-bold text-main">
-              {{ coldIschemiaElapsed }}
+              {{ t('telemetry.withdrawal.vials', { count: container.estimatedUnits }, container.estimatedUnits) }}
             </div>
             <p class="ischemia-subtext m-0 text-muted">
-              de isquemia fría · {{ coldIschemiaLimit }}
+              {{ t('telemetry.excursion.payload-detail', { weight: formatNumber(container.netWeight), lid: t(`telemetry.lid.${container.lidStatus}`) }) }}
             </p>
-
-            <!-- Progress bar -->
-            <div class="ischemia-progress-track mt-2 border-round-3xl overflow-hidden">
-              <div
-                class="ischemia-progress-fill border-round-3xl"
-                :style="{ width: `${coldIschemiaPercent}%` }"
-              ></div>
-            </div>
           </div>
-          <div class="text-xs text-muted">
-            {{ vialsCount }} viales de vacuna · tapa cerrada
-          </div>
-        </div>
+        </section>
       </div>
 
-      <!-- Card 3: Eventos -->
+      <!-- Card 3: Events -->
       <div class="col-12 md:col-4 p-0 pl-0 md:pl-2">
-        <div class="info-card screen-card p-3 border-round-xl h-full flex flex-column justify-content-between">
-          <span class="info-card-title font-bold">Eventos</span>
-          <div class="flex flex-column gap-2 my-2">
-            <!-- Event 1 -->
-            <div class="event-row flex align-items-center justify-content-between text-xs">
+        <section class="info-card screen-card p-3 border-round-xl h-full flex flex-column justify-content-between" :aria-label="t('telemetry.excursion.events')">
+          <span class="info-card-title font-bold">{{ t('telemetry.excursion.events') }}</span>
+          <ul class="flex flex-column gap-2 my-2 list-none p-0">
+            <li
+              v-for="(event, idx) in events"
+              :key="idx"
+              class="event-row flex align-items-center justify-content-between text-xs"
+            >
               <div class="flex align-items-center gap-2">
-                <span class="text-main font-bold">14:43</span>
-                <span class="text-muted">Sin respuesta aún</span>
+                <span class="text-main font-bold">{{ event.time }}</span>
+                <span class="text-muted">{{ event.text }}</span>
               </div>
-              <span class="badge-pending">
-                <span class="dot"></span>
-                Pendiente
+              <span :class="`badge-${event.kind}`">
+                <span class="dot" aria-hidden="true"></span>
+                {{ event.badge }}
               </span>
-            </div>
-
-            <!-- Event 2 -->
-            <div class="event-row flex align-items-center justify-content-between text-xs">
-              <div class="flex align-items-center gap-2">
-                <span class="text-main font-bold">14:35</span>
-                <span class="text-muted">Push y SMS despachados</span>
-              </div>
-              <span class="badge-sms">
-                <span class="dot"></span>
-                6 s
-              </span>
-            </div>
-
-            <!-- Event 3 -->
-            <div class="event-row flex align-items-center justify-content-between text-xs">
-              <div class="flex align-items-center gap-2">
-                <span class="text-main font-bold">14:35</span>
-                <span class="text-muted">Excursión detectada</span>
-              </div>
-              <span class="badge-danger">
-                <span class="dot"></span>
-                9,0 °C
-              </span>
-            </div>
-          </div>
-        </div>
+            </li>
+          </ul>
+        </section>
       </div>
     </div>
 
     <!-- Mitigation Action Buttons Bar (MBA-50) -->
     <div class="action-buttons-bar flex flex-wrap align-items-center gap-2 pt-2">
-      <!-- 1. Reconocer alerta -->
-      <pv-button
-        class="action-btn btn-acknowledge"
-        @click="emit('acknowledge')"
-      >
-        <i class="pi pi-check text-xs"></i>
-        <span>Reconocer alerta</span>
+      <pv-button class="action-btn btn-acknowledge" :disabled="acknowledged" @click="emit('acknowledge')">
+        <i class="pi pi-check text-xs" aria-hidden="true"></i>
+        <span>{{ t('telemetry.excursion.acknowledge') }}</span>
       </pv-button>
 
-      <!-- 2. Contactar cabina -->
-      <pv-button
-        class="action-btn btn-outline"
-        @click="emit('contact-cabin')"
-      >
-        <i class="pi pi-phone text-xs"></i>
-        <span>Contactar cabina</span>
+      <pv-button class="action-btn btn-outline" @click="emit('view-incident')">
+        <span>{{ t('telemetry.excursion.view-incidents') }}</span>
       </pv-button>
 
-      <!-- 3. Ver incidente INC-0312 -->
-      <pv-button
-        class="action-btn btn-outline"
-        @click="emit('view-incident')"
-      >
-        <span>Ver incidente {{ incidentCode }}</span>
-      </pv-button>
-
-      <!-- 4. Ver detalle del traslado -->
-      <pv-button
-        class="action-btn btn-outline"
-        @click="emit('view-transfer')"
-      >
-        <span>Ver detalle del traslado</span>
+      <pv-button v-if="container.currentTransferId" class="action-btn btn-outline" @click="emit('view-transfer')">
+        <span>{{ t('telemetry.excursion.view-transfer') }}</span>
       </pv-button>
     </div>
   </div>

@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000/api/v1';
+const apiUrl = import.meta.env?.VITE_API_URL || 'http://localhost:3000/api/v1';
 
 /**
  * Shared infrastructure base class configuring the Axios HTTP client.

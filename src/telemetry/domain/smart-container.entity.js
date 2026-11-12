@@ -1,3 +1,6 @@
+import { ThermalThresholds } from "./thermal-thresholds.value-object.js";
+import { TelemetryLog } from "./telemetry-log.entity.js";
+
 /**
  * SmartContainer aggregate root entity within the Smart Container & Telemetry Monitoring bounded context.
  * Aligned with Table 4 (`smart_containers`) of Chapter 4.8 Database Design and Chapter 4.7 Class Diagram.
@@ -7,8 +10,8 @@
 export class SmartContainer {
     /**
      * @param {Object} params - Entity attributes aligned with `smart_containers` database table and UI state.
-     * @param {?string|number} [params.id=null] - Unique identifier (`id` UUIDv7 / business ID).
-     * @param {string} [params.serialNumber=''] - Hardware chassis & firmware serial (`serial_number`, e.g. 'SMB-BOX-2026-0042').
+     * @param {?string|number} [params.id=null] - Unique identifier (`id` UUIDv7 / monotonic integer / business ID).
+     * @param {string} [params.serialNumber=''] - Hardware chassis & firmware serial (`serial_number`, e.g. 'SB-0182').
      * @param {string} [params.formFactor='StandardBox_20L'] - Physical size (`form_factor`: 'SmallBox_5L' | 'StandardBox_20L').
      * @param {string} [params.containerStatus='Available'] - Domain lifecycle (`status`: 'Available' | 'Precooling' | 'LockedAndReady' | 'InTransit' | 'Delivered' | 'MaintenanceRequired').
      * @param {string} [params.lockState='Locked'] - Electromechanical lock state (`lock_state`: 'Locked' | 'Unlocked' | 'Tampered' | 'Error').
@@ -30,10 +33,11 @@ export class SmartContainer {
      * @param {string} [params.lidStatus] - UI alias ('closed' | 'open') derived from `lockState`.
      * @param {number} [params.netWeight] - UI weight in kg derived from `netWeightGrams` / `tareWeightGrams`.
      * @param {number} [params.tareWeight] - UI tare weight in kg derived from `tareWeightGrams`.
-     * @param {string} [params.signalQuality='Fuerte'] - IoT cellular signal indicator.
-     * @param {string} [params.location='Base Clínica San Borja'] - Current GPS or base location label.
+     * @param {number} [params.warningTemperature=7.5] - Preventive warning limit in °C (D-06).
+     * @param {number} [params.batteryWarningPercentage=20] - Battery percentage that triggers a warning.
+     * @param {string} [params.signalQuality='strong'] - IoT cellular signal code ('strong' | 'medium' | 'weak' | 'none').
+     * @param {string} [params.location=''] - Current GPS or base location label.
      * @param {string} [params.status='online'] - UI connectivity/operational status ('online' | 'warning' | 'offline' | 'unlinked').
-     * @param {string} [params.lastPing='Reciente'] - Human-readable elapsed time since `lastTelemetryAt`.
      * @param {number} [params.unitWeight=0.4] - Estimated weight per medical vial in kg.
      * @param {number} [params.estimatedUnits=0] - Estimated number of vials based on net payload weight.
      * @param {Array<Object>} [params.movements=[]] - Registered payload movements.
@@ -56,16 +60,17 @@ export class SmartContainer {
         ambulancePlate = null,
         currentTransferId = null,
         currentTemperature = 4.0,
-        targetMinTemperature = 2.0,
-        targetMaxTemperature = 8.0,
+        targetMinTemperature = ThermalThresholds.DEFAULT_MIN_CELSIUS,
+        targetMaxTemperature = ThermalThresholds.DEFAULT_MAX_CELSIUS,
+        warningTemperature = ThermalThresholds.DEFAULT_WARNING_CELSIUS,
+        batteryWarningPercentage = 20,
         batteryLevel = 100,
         lidStatus = 'closed',
         netWeight = 0.0,
         tareWeight = 10.0,
-        signalQuality = 'Fuerte',
-        location = 'Base Clínica San Borja',
+        signalQuality = 'strong',
+        location = '',
         status = 'online',
-        lastPing = 'Reciente',
         unitWeight = 0.4,
         estimatedUnits = 0,
         movements = []
@@ -78,20 +83,23 @@ export class SmartContainer {
             : 0.0);
         const resolvedFormFactor = formFactor || (String(model).includes('5L') ? 'SmallBox_5L' : 'StandardBox_20L');
         const resolvedLockState = lockState || (lidStatus === 'open' ? 'Unlocked' : 'Locked');
-        const resolvedContainerStatus = containerStatus || SmartContainer.mapUiStatusToDomainStatus(status, ambulancePlate, currentTransferId);
+        const resolvedDomainStatus = containerStatus || SmartContainer.mapUiStatusToDomainStatus(status, ambulancePlate, currentTransferId);
+        const resolvedUiStatus = ['online', 'warning', 'offline', 'unlinked'].includes(status)
+            ? status
+            : SmartContainer.mapDomainStatusToUiStatus(resolvedDomainStatus, ambulancePlate);
 
         // Official Database Schema fields (`smart_containers` table - Chapter 4.8.1.2)
         this.id = id;
-        this.serialNumber = serialNumber;
+        this.serialNumber = serialNumber || (typeof id === 'string' && id.startsWith('SB-') ? id : '');
         this.formFactor = resolvedFormFactor;
-        this.containerStatus = resolvedContainerStatus;
+        this.containerStatus = resolvedDomainStatus;
         this.lockState = resolvedLockState;
         this.currentTemperatureCelsius = Number(resolvedTemp);
         this.tareWeightGrams = Number(resolvedTareGrams);
         this.netWeightGrams = Number(resolvedNetGrams);
         this.batteryPercentage = Number(resolvedBattery);
-        this.is12vConnected = is12vConnected ?? (status === 'online' && Boolean(ambulancePlate));
-        this.lastTelemetryAt = lastTelemetryAt || new Date().toISOString();
+        this.is12vConnected = is12vConnected ?? (resolvedUiStatus === 'online' && Boolean(ambulancePlate));
+        this.lastTelemetryAt = lastTelemetryAt || TelemetryLog.currentTimestamp();
         this.createdAt = createdAt || '2026-09-01T08:00:00.000000Z';
         this.updatedAt = updatedAt || this.lastTelemetryAt;
 
@@ -102,17 +110,32 @@ export class SmartContainer {
         this.currentTemperature = this.currentTemperatureCelsius;
         this.targetMinTemperature = targetMinTemperature;
         this.targetMaxTemperature = targetMaxTemperature;
+        this.warningTemperature = warningTemperature;
+        this.batteryWarningPercentage = batteryWarningPercentage;
         this.batteryLevel = Math.round(this.batteryPercentage);
         this.lidStatus = resolvedLockState === 'Locked' ? 'closed' : 'open';
         this.tareWeight = tareWeight !== undefined ? tareWeight : Number((this.tareWeightGrams / 1000).toFixed(2));
         this.netWeight = netWeight !== undefined ? netWeight : Number(((this.tareWeightGrams + this.netWeightGrams) / 1000).toFixed(2));
-        this.signalQuality = signalQuality;
+        this.signalQuality = SmartContainer.normalizeSignalQuality(signalQuality);
         this.location = location;
-        this.status = status;
-        this.lastPing = lastPing;
+        this.status = resolvedUiStatus;
         this.unitWeight = unitWeight;
         this.estimatedUnits = estimatedUnits;
         this.movements = movements;
+    }
+
+    /**
+     * Maps canonical backend / database `containerStatus` ENUM to UI status code.
+     * @param {string} domainStatus
+     * @param {?string} ambulancePlate
+     * @returns {'online'|'warning'|'offline'|'unlinked'}
+     */
+    static mapDomainStatusToUiStatus(domainStatus, ambulancePlate) {
+        if (!domainStatus) return ambulancePlate ? 'online' : 'unlinked';
+        const s = String(domainStatus).toLowerCase();
+        if (s.includes('maintenance') || s.includes('offline')) return 'offline';
+        if (s.includes('available') || (!ambulancePlate && s !== 'intransit')) return 'unlinked';
+        return 'online';
     }
 
     /**
@@ -126,12 +149,52 @@ export class SmartContainer {
     }
 
     /**
-     * Checks if current temperature is within cold-chain safe preservation boundaries (+2.0 °C to +8.0 °C).
+     * Normalizes legacy signal labels into stable codes that the UI translates.
+     * @param {string} value
+     * @returns {'strong'|'medium'|'weak'|'none'}
+     */
+    static normalizeSignalQuality(value) {
+        const legacy = { 'Fuerte': 'strong', 'Media': 'medium', 'Débil': 'weak', 'Sin señal': 'none' };
+        const code = legacy[value] || value;
+        return ['strong', 'medium', 'weak', 'none'].includes(code) ? code : 'none';
+    }
+
+    /**
+     * Thermal thresholds configured for this container (D-06).
+     * @returns {ThermalThresholds}
+     */
+    get thermalThresholds() {
+        return new ThermalThresholds({
+            minCelsius: this.targetMinTemperature,
+            maxCelsius: this.targetMaxTemperature,
+            warningCelsius: this.warningTemperature
+        });
+    }
+
+    /**
+     * Thermal state of the latest reading.
+     * @returns {'normal'|'warning'|'critical'}
+     */
+    get thermalState() {
+        return this.thermalThresholds.classify(this.currentTemperatureCelsius);
+    }
+
+    /**
+     * Checks if current temperature is within the configured cold-chain safe range.
      * @returns {boolean}
      */
     get isTemperatureInSafeRange() {
-        return this.currentTemperatureCelsius >= this.targetMinTemperature &&
-               this.currentTemperatureCelsius <= this.targetMaxTemperature;
+        return this.thermalThresholds.isInRange(this.currentTemperatureCelsius);
+    }
+
+    /**
+     * Returns a copy of this container with another temperature reading.
+     * Used by the live view to simulate a thermal excursion without hardware.
+     * @param {number} celsius
+     * @returns {SmartContainer}
+     */
+    withTemperature(celsius) {
+        return new SmartContainer({ ...this, currentTemperatureCelsius: celsius, currentTemperature: celsius });
     }
 
     /**

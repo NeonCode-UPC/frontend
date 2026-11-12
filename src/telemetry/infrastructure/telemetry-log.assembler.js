@@ -50,14 +50,19 @@ export class TelemetryLogAssembler {
      * @returns {TelemetryLog[]}
      */
     static toEntitiesFromResponse(response) {
-        if (!response || response.status !== 200) {
+        if (!response || (response.status !== 200 && response.status !== 201)) {
             console.error(response ? `Status: ${response.status}` : 'No response');
             return [];
         }
 
-        const resources = Array.isArray(response.data)
-            ? response.data
-            : response.data['telemetry-logs'] || [];
+        let resources = [];
+        if (Array.isArray(response.data)) {
+            resources = response.data;
+        } else if (response.data && Array.isArray(response.data['telemetry-logs'])) {
+            resources = response.data['telemetry-logs'];
+        } else if (response.data && typeof response.data === 'object') {
+            resources = [response.data];
+        }
 
         return resources.map(resource => this.toEntityFromResource(resource));
     }

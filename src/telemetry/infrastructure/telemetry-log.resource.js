@@ -1,6 +1,6 @@
 /**
  * Infrastructure resource payload for a TelemetryLog record returned by the REST API or json-server.
- * Aligned with the 15 columns of Table 5 (`telemetry_logs`) in Chapter 4.8.1.2.
+ * Aligned with the 15 columns of Table 5 (`telemetry_logs`) in Chapter 4.8.1.2 and .NET TelemetryLogResource.
  *
  * @class TelemetryLogResource
  */
@@ -23,6 +23,7 @@ export class TelemetryLogResource {
         battery_percentage,
         is12vConnected,
         is_12v_connected,
+        is12VConnected,
         peltierPowerPct,
         peltier_power_pct,
         lidLockEngaged,
@@ -50,7 +51,7 @@ export class TelemetryLogResource {
         this.ambientTemperatureCelsius = ambientTemperatureCelsius ?? ambient_temperature_celsius;
         this.weightGrams = weightGrams ?? weight_grams;
         this.batteryPercentage = batteryPercentage ?? battery_percentage ?? batteryLevel;
-        this.is12vConnected = is12vConnected ?? is_12v_connected;
+        this.is12vConnected = is12vConnected ?? is_12v_connected ?? is12VConnected;
         this.peltierPowerPct = peltierPowerPct ?? peltier_power_pct;
         this.lidLockEngaged = lidLockEngaged ?? lid_lock_engaged;
         this.latitude = latitude;

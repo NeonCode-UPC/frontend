@@ -1,5 +1,8 @@
 <script setup>
 import { computed, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
+import { ThermalThresholds } from '../../domain/thermal-thresholds.value-object.js';
+import { useTelemetryFormat } from '../composables/use-telemetry-format.js';
 
 const props = defineProps({
   /**
@@ -27,16 +30,31 @@ const props = defineProps({
   },
   safeMin: {
     type: Number,
-    default: 2.0
+    default: ThermalThresholds.DEFAULT_MIN_CELSIUS
   },
   safeMax: {
     type: Number,
-    default: 8.0
+    default: ThermalThresholds.DEFAULT_MAX_CELSIUS
   },
   interactive: {
     type: Boolean,
     default: true
   }
+});
+
+const { t } = useI18n();
+const { formatTemperature } = useTelemetryFormat();
+
+// Accessible text alternative for the SVG curve
+const chartDescription = computed(() => {
+  if (!props.data.length) return t('telemetry.chart.empty');
+  const temps = props.data.map(d => d.temperature);
+  return t('telemetry.chart.summary', {
+    count: props.data.length,
+    min: formatTemperature(Math.min(...temps)),
+    max: formatTemperature(Math.max(...temps)),
+    last: formatTemperature(temps[temps.length - 1])
+  });
 });
 
 // ViewBox width for high resolution SVG
@@ -47,10 +65,13 @@ const chartWidth = computed(() => svgWidth - padding.left - padding.right);
 const chartHeight = computed(() => props.height - padding.top - padding.bottom);
 
 // Min and Max temperature scales
-const tempMin = computed(() => 1.5);
+const tempMin = computed(() => {
+  const minInData = props.data.length ? Math.min(...props.data.map(d => d.temperature ?? props.safeMin)) : props.safeMin;
+  return Math.min(props.safeMin - 0.5, minInData - 0.5);
+});
 const tempMax = computed(() => {
-  const maxInData = props.data.length ? Math.max(...props.data.map(d => d.temperature || 0)) : 8.0;
-  return Math.max(10.0, maxInData + 0.8);
+  const maxInData = props.data.length ? Math.max(...props.data.map(d => d.temperature || 0)) : props.safeMax;
+  return Math.max(props.safeMax + 2.0, maxInData + 0.8);
 });
 
 // Coordinate conversion helpers
@@ -79,7 +100,7 @@ const points = computed(() => {
     y: getY(item.temperature),
     temp: item.temperature,
     time: item.time,
-    isCritical: item.temperature > props.safeMax || item.isExcursion
+    isCritical: item.temperature > props.safeMax || item.temperature < props.safeMin || item.isExcursion
   }));
 });
 
@@ -160,6 +181,8 @@ function handleMouseLeave() {
       :viewBox="`0 0 ${svgWidth} ${height}`"
       preserveAspectRatio="none"
       class="w-full h-full block"
+      role="img"
+      :aria-label="chartDescription"
       @mousemove="handleMouseMove"
       @mouseleave="handleMouseLeave"
     >
@@ -205,7 +228,7 @@ function handleMouseLeave() {
         text-anchor="end"
         class="chart-label-threshold"
       >
-        8 °C
+        {{ formatTemperature(safeMax, 0) }}
       </text>
 
       <!-- 2°C Baseline Label -->
@@ -215,7 +238,7 @@ function handleMouseLeave() {
         text-anchor="end"
         class="chart-label-baseline"
       >
-        2 °C
+        {{ formatTemperature(safeMin, 0) }}
       </text>
 
       <!-- Area Fill Under Curve -->
@@ -298,6 +321,7 @@ function handleMouseLeave() {
     <div
       v-if="hoveredPoint"
       class="chart-tooltip pointer-events-none"
+      aria-hidden="true"
       :style="{
         left: `${(hoveredPoint.x / svgWidth) * 100}%`,
         top: `${(hoveredPoint.y / height) * 100}%`
@@ -306,7 +330,7 @@ function handleMouseLeave() {
       <div class="tooltip-body shadow-2">
         <span class="tooltip-time">{{ hoveredPoint.time }}</span>
         <strong :class="hoveredPoint.isCritical ? 'text-red' : 'text-teal'">
-          {{ hoveredPoint.temp.toFixed(1) }} °C
+          {{ formatTemperature(hoveredPoint.temp) }}
         </strong>
       </div>
     </div>
