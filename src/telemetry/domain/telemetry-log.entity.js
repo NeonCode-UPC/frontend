@@ -56,7 +56,7 @@ export class TelemetryLog {
         netWeight = 18.4,
         batteryLevel = 82,
         lidStatus = 'closed',
-        status = 'normal'
+        status = undefined
     } = {}) {
         const resolvedTemp = temperatureCelsius ?? temperature ?? 4.0;
         const resolvedWeightGrams = weightGrams ?? Number((netWeight * 1000).toFixed(2));

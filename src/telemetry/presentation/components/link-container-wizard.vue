@@ -1,6 +1,7 @@
 <script setup>
 import { ref, computed, watch, onBeforeUnmount } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { useToast } from 'primevue/usetoast';
 import { useTelemetryStore } from '../../application/telemetry.store.js';
 import { LinkContainerCommand } from '../../domain/link-container.command.js';
 
@@ -13,13 +14,14 @@ const props = defineProps({
     required: true
   },
   preselectedContainerId: {
-    type: String,
+    type: [String, Number],
     default: ''
   }
 });
 
 const emit = defineEmits(['update:visible', 'linked']);
 const { t } = useI18n();
+const toast = useToast();
 const telemetryStore = useTelemetryStore();
 
 const currentStep = ref(1);
@@ -39,7 +41,7 @@ const availableAmbulances = ref([
 ]);
 
 const firstUnlinkedContainerId = computed(() =>
-  telemetryStore.containers.find(c => !c.ambulancePlate && c.status !== 'offline')?.id || '');
+  telemetryStore.containers.find(c => !c.ambulancePlate && c.status !== 'offline')?.id ?? '');
 
 watch(() => props.visible, (newVal) => {
   if (newVal) {
@@ -56,7 +58,7 @@ watch(() => props.visible, (newVal) => {
 onBeforeUnmount(() => clearInterval(activationTimer));
 
 // Container validation
-const targetContainer = computed(() => telemetryStore.containers.find(c => c.id === selectedContainerId.value));
+const targetContainer = computed(() => telemetryStore.findContainer(selectedContainerId.value));
 
 const isContainerAlreadyLinked = computed(() => Boolean(targetContainer.value?.ambulancePlate));
 
@@ -97,6 +99,13 @@ async function handleCompleteLink() {
     await telemetryStore.linkContainer(command);
     emit('linked', { containerId: command.containerId, ambulancePlate: command.ambulancePlate });
     emit('update:visible', false);
+  } catch {
+    toast.add({
+      severity: 'error',
+      summary: t('telemetry.toast.error-summary'),
+      detail: t('telemetry.toast.error-detail'),
+      life: 4000
+    });
   } finally {
     isActivating.value = false;
   }
@@ -209,7 +218,7 @@ async function handleCompleteLink() {
                     v-model="selectedContainerId"
                     input-id="container-select"
                     :options="telemetryStore.containers"
-                    option-label="id"
+                    option-label="displayCode"
                     option-value="id"
                     :placeholder="t('telemetry.wizard.select-container')"
                     class="w-full text-sm font-bold select-custom"
@@ -221,7 +230,7 @@ async function handleCompleteLink() {
 
               <div v-if="isContainerAlreadyLinked" id="container-select-feedback" class="error-notice mt-2 text-xs flex align-items-center gap-1" role="alert">
                 <i class="pi pi-exclamation-circle text-xs" aria-hidden="true"></i>
-                <span>{{ t('telemetry.wizard.already-linked', { id: selectedContainerId, plate: conflictingPlate }) }}</span>
+                <span>{{ t('telemetry.wizard.already-linked', { id: targetContainer?.displayCode || selectedContainerId, plate: conflictingPlate }) }}</span>
               </div>
               <div v-else id="container-select-feedback" class="success-notice mt-2 text-xs flex align-items-center gap-1" role="status">
                 <i class="pi pi-check-circle text-xs text-teal" aria-hidden="true"></i>
@@ -261,7 +270,7 @@ async function handleCompleteLink() {
                 <div class="flex justify-content-between align-items-center">
                   <div>
                     <dt class="text-2xs text-muted block">{{ t('telemetry.name') }}</dt>
-                    <dd class="text-sm text-main font-bold m-0">{{ selectedContainerId }}</dd>
+                    <dd class="text-sm text-main font-bold m-0">{{ targetContainer?.displayCode || selectedContainerId }}</dd>
                   </div>
                   <span class="badge-chosen text-xs px-2 py-1 border-round-pill">
                     • {{ t('telemetry.wizard.available') }}

@@ -28,7 +28,7 @@ export const useTelemetryStore = defineStore('telemetry', () => {
     // Computed properties
     const totalContainersCount = computed(() => containers.value.length);
     const onlineContainers = computed(() => containers.value.filter(c => c.status === 'online'));
-    const warningContainers = computed(() => containers.value.filter(c => c.status === 'warning'));
+    const warningContainers = computed(() => containers.value.filter(c => c.status === 'warning' || c.thermalState !== 'normal'));
     const offlineContainers = computed(() => containers.value.filter(c => c.status === 'offline'));
     const unlinkedContainers = computed(() => containers.value.filter(c => c.status === 'unlinked' || !c.ambulancePlate));
 
@@ -38,15 +38,13 @@ export const useTelemetryStore = defineStore('telemetry', () => {
      * @returns {import('../domain/smart-container.entity.js').SmartContainer|undefined}
      */
     function findContainer(identifier) {
-        if (!identifier && identifier !== 0) return undefined;
-        return containers.value.find(c =>
-            String(c.id) === String(identifier) ||
-            String(c.serialNumber) === String(identifier)
-        );
+        if (identifier === null || identifier === undefined || identifier === '') return undefined;
+        return containers.value.find(c => c.matchesIdentifier(identifier));
     }
 
     /**
-     * Updates an entity in local reactive state.
+     * Updates an entity in local reactive state while preserving session-only UI telemetry metadata
+     * (such as local weight movements) when the REST DTO omits it.
      * @param {import('../domain/smart-container.entity.js').SmartContainer} updated
      */
     function updateLocalContainer(updated) {
@@ -55,6 +53,13 @@ export const useTelemetryStore = defineStore('telemetry', () => {
             (c.serialNumber && updated.serialNumber && c.serialNumber === updated.serialNumber)
         );
         if (index !== -1) {
+            const existing = containers.value[index];
+            if ((!updated.movements || !updated.movements.length) && existing?.movements?.length) {
+                updated.movements = existing.movements;
+            }
+            if (!updated.unitWeight && existing?.unitWeight) {
+                updated.unitWeight = existing.unitWeight;
+            }
             containers.value[index] = updated;
         } else {
             containers.value.push(updated);
@@ -62,10 +67,15 @@ export const useTelemetryStore = defineStore('telemetry', () => {
 
         if (selectedContainer.value && (
             String(selectedContainer.value.id) === String(updated.id) ||
-            selectedContainer.value.serialNumber === updated.serialNumber
+            (selectedContainer.value.serialNumber && updated.serialNumber && selectedContainer.value.serialNumber === updated.serialNumber)
         )) {
             selectedContainer.value = updated;
         }
+    }
+
+    function isSubRouteUnsupported(error) {
+        const status = error?.response?.status;
+        return status === 404 || status === 405;
     }
 
     /**
@@ -98,7 +108,7 @@ export const useTelemetryStore = defineStore('telemetry', () => {
         loading.value = true;
         try {
             let response;
-            if (typeof id === 'string' && id.startsWith('SB-')) {
+            if (typeof id === 'string' && !/^\d+$/.test(id.trim())) {
                 response = await telemetryApi.getContainerBySerialNumber(id).catch(() => telemetryApi.getContainerById(id));
             } else {
                 response = await telemetryApi.getContainerById(id);
@@ -122,8 +132,8 @@ export const useTelemetryStore = defineStore('telemetry', () => {
     async function fetchTelemetryLogs(containerId = null) {
         loading.value = true;
         try {
-            const target = containerId ? findContainer(containerId) : selectedContainer.value;
-            const targetId = target?.serialNumber || target?.id || containerId;
+            const target = containerId !== null && containerId !== undefined ? findContainer(containerId) : selectedContainer.value;
+            const targetId = target?.displayCode || target?.serialNumber || target?.id || containerId;
 
             let response;
             if (targetId) {
@@ -180,6 +190,20 @@ export const useTelemetryStore = defineStore('telemetry', () => {
         }
     }
 
+    function buildWeightMovementEntry(command) {
+        const now = new Date();
+        const time = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+        const sign = command.weightDiff > 0 ? '+' : '';
+        return {
+            id: `MOV-${now.getTime()}`,
+            time,
+            type: command.weightDiff < 0 ? 'withdrawal' : 'deposit',
+            weightDiff: `${sign}${command.weightDiff} kg`,
+            units: command.units,
+            responsible: command.responsible
+        };
+    }
+
     /**
      * Links a SmartBox to an ambulance (US08 / POST /api/v1/smart-containers/{id}/pair).
      * @param {LinkContainerCommand} command
@@ -196,6 +220,7 @@ export const useTelemetryStore = defineStore('telemetry', () => {
                 const updated = SmartContainerAssembler.toEntityFromResource(response.data);
                 updateLocalContainer(updated);
             } catch (pairError) {
+                if (!isSubRouteUnsupported(pairError)) throw pairError;
                 // 2. Graceful fallback to PUT update for mock server
                 await executeOnContainer(targetId, draft => {
                     draft.ambulancePlate = command.ambulancePlate;
@@ -230,6 +255,7 @@ export const useTelemetryStore = defineStore('telemetry', () => {
                 const updated = SmartContainerAssembler.toEntityFromResource(response.data);
                 updateLocalContainer(updated);
             } catch (unlinkError) {
+                if (!isSubRouteUnsupported(unlinkError)) throw unlinkError;
                 // 2. Graceful fallback to PUT update for mock server
                 await executeOnContainer(targetId, draft => {
                     draft.ambulancePlate = null;
@@ -250,6 +276,7 @@ export const useTelemetryStore = defineStore('telemetry', () => {
 
     /**
      * Records a weight change detected by the HX711 load cell (US11 / POST /api/v1/smart-containers/{id}/weight-movements).
+     * Backend expects the resulting total net payload weight in grams (>= 0), not a negative delta.
      * @param {RecordWeightWithdrawalCommand} command
      */
     async function recordWeightMovement(command) {
@@ -257,32 +284,29 @@ export const useTelemetryStore = defineStore('telemetry', () => {
         try {
             const target = findContainer(command.containerId);
             const targetId = target?.id ?? command.containerId;
+            const movementEntry = buildWeightMovementEntry(command);
 
             try {
-                // 1. Dedicated ASP.NET Core backend endpoint
+                // 1. Dedicated ASP.NET Core backend endpoint (expects resulting absolute NetWeightGrams >= 0)
+                const currentNetGrams = Number(target?.netWeightGrams ?? 0);
+                const updatedNetGrams = Math.max(0, Math.round(currentNetGrams + (command.weightDiff * 1000)));
                 const payload = {
-                    netWeightGrams: Math.round(command.weightDiff * 1000),
+                    netWeightGrams: updatedNetGrams,
                     unitsDifference: command.units,
                     responsibleUser: command.responsible,
                     reason: command.weightDiff < 0 ? 'Biological payload withdrawal' : 'Biological payload deposit'
                 };
                 const response = await telemetryApi.recordWeightMovement(targetId, payload);
                 const updated = SmartContainerAssembler.toEntityFromResource(response.data);
+                if (!updated.movements || !updated.movements.length) {
+                    updated.movements = [...(target?.movements || []), movementEntry];
+                }
                 updateLocalContainer(updated);
             } catch (movementError) {
+                if (!isSubRouteUnsupported(movementError)) throw movementError;
                 // 2. Graceful fallback to local draft update and PUT for mock server
                 await executeOnContainer(targetId, draft => {
-                    const now = new Date();
-                    const time = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-                    const sign = command.weightDiff > 0 ? '+' : '';
-                    draft.movements = [...draft.movements, {
-                        id: `MOV-${now.getTime()}`,
-                        time,
-                        type: command.weightDiff < 0 ? 'withdrawal' : 'deposit',
-                        weightDiff: `${sign}${command.weightDiff} kg`,
-                        units: command.units,
-                        responsible: command.responsible
-                    }];
+                    draft.movements = [...draft.movements, movementEntry];
                     draft.netWeight = Number((draft.netWeight + command.weightDiff).toFixed(2));
                     draft.netWeightGrams = Math.max(0, Number((draft.netWeightGrams + command.weightDiff * 1000).toFixed(2)));
                     draft.estimatedUnits = Math.max(0, draft.estimatedUnits + command.units);
@@ -307,11 +331,12 @@ export const useTelemetryStore = defineStore('telemetry', () => {
         try {
             const target = findContainer(containerId);
             const targetId = target?.id ?? containerId;
-            const serial = target?.serialNumber || String(targetId);
+            const serial = target?.displayCode || target?.serialNumber || String(targetId);
 
             // Transmit IoT reading to telemetry-logs collection
             await telemetryApi.createTelemetryLog({
                 containerId: serial,
+                tripId: target?.currentTransferId ?? null,
                 temperatureCelsius: snapshot.temperatureCelsius ?? snapshot.temperature,
                 ambientTemperatureCelsius: snapshot.ambientTemperatureCelsius ?? 22.0,
                 weightGrams: snapshot.weightGrams ?? (target ? target.netWeightGrams : 2400.0),
@@ -342,15 +367,32 @@ export const useTelemetryStore = defineStore('telemetry', () => {
 
     /**
      * Updates preservation thresholds and alerts for a SmartBox (US13).
+     * Note: ASP.NET Core PUT /api/v1/smart-containers/{id} only supports ambulance pairing/unlinking,
+     * so for numeric .NET IDs rules are applied directly in store state without invoking a conflicting Pair/Unlink PUT.
      * @param {ConfigureThermalThresholdsCommand} command
      */
     async function updateContainerRules(command) {
-        await executeOnContainer(command.containerId, draft => {
+        const current = findContainer(command.containerId);
+        if (!current) throw new Error(`SmartContainer ${command.containerId} not found.`);
+
+        const applyRules = (draft) => {
             draft.targetMinTemperature = command.thresholds.minCelsius;
             draft.targetMaxTemperature = command.thresholds.maxCelsius;
             draft.warningTemperature = command.thresholds.warningCelsius;
             draft.batteryWarningPercentage = command.batteryWarning;
-        });
+        };
+
+        if (typeof current.id === 'number') {
+            const draft = SmartContainerAssembler.toEntityFromResource(
+                SmartContainerAssembler.toResourceFromEntity(current)
+            );
+            applyRules(draft);
+            updateLocalContainer(draft);
+            errors.value = [];
+            return;
+        }
+
+        await executeOnContainer(command.containerId, applyRules);
     }
 
     function selectContainer(container) {
@@ -368,6 +410,7 @@ export const useTelemetryStore = defineStore('telemetry', () => {
         warningContainers,
         offlineContainers,
         unlinkedContainers,
+        findContainer,
         fetchContainers,
         fetchContainerById,
         fetchTelemetryLogs,

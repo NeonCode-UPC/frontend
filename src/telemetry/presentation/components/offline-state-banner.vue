@@ -5,7 +5,7 @@ import { useTelemetryFormat } from '../composables/use-telemetry-format.js';
 
 const props = defineProps({
   containerId: {
-    type: String,
+    type: [String, Number],
     required: true
   },
   /** Container that is not responding (null when every container is reporting). */
@@ -112,7 +112,7 @@ function handleRetry() {
             </h2>
             <p class="state-card-desc m-0 text-muted mb-4">
               {{ t('telemetry.offline.error-detail', {
-                id: offlineContainer.id,
+                id: offlineContainer.displayCode || offlineContainer.id,
                 temp: formatTemperature(offlineContainer.currentTemperature),
                 at: formatDateTime(offlineContainer.lastTelemetryAt)
               }) }}

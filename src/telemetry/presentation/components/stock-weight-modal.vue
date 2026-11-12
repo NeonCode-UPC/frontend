@@ -120,7 +120,7 @@ function handleConfirm() {
       <div class="notice-info flex align-items-center gap-2 p-2 border-round-lg">
         <i class="pi pi-shield text-teal text-xs" aria-hidden="true"></i>
         <span class="text-2xs text-muted">
-          {{ t('telemetry.withdrawal.custody-note', { id: container?.id || '—' }) }}
+          {{ t('telemetry.withdrawal.custody-note', { id: container?.displayCode || container?.id || '—' }) }}
         </span>
       </div>
     </div>
