@@ -2,7 +2,7 @@ import { TelemetryLog } from "../domain/telemetry-log.entity.js";
 import { TelemetryLogResource } from "./telemetry-log.resource.js";
 
 /**
- * Maps TelemetryLog resources into domain entities.
+ * Maps TelemetryLog resources into domain entities and vice versa.
  *
  * @class TelemetryLogAssembler
  */
@@ -14,7 +14,33 @@ export class TelemetryLogAssembler {
      * @returns {TelemetryLog}
      */
     static toEntityFromResource(resource) {
-        return new TelemetryLog({ ...resource });
+        return new TelemetryLog(new TelemetryLogResource(resource));
+    }
+
+    /**
+     * Converts a TelemetryLog entity into a REST payload matching `CreateTelemetryLogResource` / `telemetry_logs`.
+     *
+     * @param {TelemetryLog} entity
+     * @returns {Object}
+     */
+    static toResourceFromEntity(entity) {
+        return {
+            id: entity.id,
+            containerId: entity.containerId,
+            tripId: entity.tripId,
+            timestampUtc: entity.timestampUtc,
+            temperatureCelsius: entity.temperatureCelsius,
+            ambientTemperatureCelsius: entity.ambientTemperatureCelsius,
+            weightGrams: entity.weightGrams,
+            batteryPercentage: entity.batteryPercentage,
+            is12vConnected: entity.is12vConnected,
+            peltierPowerPct: entity.peltierPowerPct,
+            lidLockEngaged: entity.lidLockEngaged,
+            latitude: entity.latitude,
+            longitude: entity.longitude,
+            firmwareSignature: entity.firmwareSignature,
+            isThermalExcursion: entity.isThermalExcursion
+        };
     }
 
     /**
@@ -33,8 +59,6 @@ export class TelemetryLogAssembler {
             ? response.data
             : response.data['telemetry-logs'] || [];
 
-        return resources.map(resource =>
-            this.toEntityFromResource(new TelemetryLogResource(resource))
-        );
+        return resources.map(resource => this.toEntityFromResource(resource));
     }
 }
