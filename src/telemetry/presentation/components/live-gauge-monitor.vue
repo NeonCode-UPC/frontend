@@ -23,13 +23,13 @@ const thermalState = computed(() => props.container.thermalState);
 
 // Most recent readings of this container, in chronological order
 const recentLogs = computed(() => props.logs
-  .filter(log => log.containerId === props.container.id)
+  .filter(log => props.container.ownsTelemetryLog(log))
   .slice()
   .sort((a, b) => String(a.timestampUtc).localeCompare(String(b.timestampUtc)))
   .slice(-14));
 
 const isInTransit = computed(() => Boolean(props.container.currentTransferId));
-const headerTitle = computed(() => props.container.currentTransferId || props.container.id);
+const headerTitle = computed(() => props.container.currentTransferId || props.container.displayCode);
 </script>
 
 <template>
@@ -44,7 +44,7 @@ const headerTitle = computed(() => props.container.currentTransferId || props.co
           {{ headerTitle }}
         </h1>
         <p class="subtitle-text m-0 mt-1">
-          {{ container.id }} · {{ container.ambulancePlate || t('telemetry.detail.no-ambulance') }}
+          {{ container.displayCode }} · {{ container.ambulancePlate || t('telemetry.detail.no-ambulance') }}
         </p>
       </div>
 
@@ -55,7 +55,7 @@ const headerTitle = computed(() => props.container.currentTransferId || props.co
         </span>
         <span class="status-pill container-badge">
           <span class="static-dot" aria-hidden="true"></span>
-          {{ container.id }}
+          {{ container.displayCode }}
         </span>
       </div>
     </div>

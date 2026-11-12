@@ -63,6 +63,7 @@ export class SmartContainer {
         targetMinTemperature = ThermalThresholds.DEFAULT_MIN_CELSIUS,
         targetMaxTemperature = ThermalThresholds.DEFAULT_MAX_CELSIUS,
         warningTemperature = ThermalThresholds.DEFAULT_WARNING_CELSIUS,
+        excursionToleranceSeconds = ThermalThresholds.DEFAULT_EXCURSION_TOLERANCE_SECONDS,
         batteryWarningPercentage = 20,
         batteryLevel = 100,
         lidStatus = 'closed',
@@ -72,7 +73,7 @@ export class SmartContainer {
         location = '',
         status = 'online',
         unitWeight = 0.4,
-        estimatedUnits = 0,
+        estimatedUnits = undefined,
         movements = []
     } = {}) {
         const resolvedTemp = currentTemperatureCelsius ?? currentTemperature ?? 4.0;
@@ -87,10 +88,14 @@ export class SmartContainer {
         const resolvedUiStatus = ['online', 'warning', 'offline', 'unlinked'].includes(status)
             ? status
             : SmartContainer.mapDomainStatusToUiStatus(resolvedDomainStatus, ambulancePlate);
+        const resolvedEstimatedUnits = (estimatedUnits !== undefined && estimatedUnits !== null)
+            ? Number(estimatedUnits)
+            : (resolvedNetGrams > 0 && unitWeight > 0 ? Math.round((resolvedNetGrams / 1000) / unitWeight) : 0);
 
         // Official Database Schema fields (`smart_containers` table - Chapter 4.8.1.2)
         this.id = id;
         this.serialNumber = serialNumber || (typeof id === 'string' && id.startsWith('SB-') ? id : '');
+        this.displayCode = SmartContainer.resolveDisplayCode(this.id, this.serialNumber);
         this.formFactor = resolvedFormFactor;
         this.containerStatus = resolvedDomainStatus;
         this.lockState = resolvedLockState;
@@ -111,6 +116,7 @@ export class SmartContainer {
         this.targetMinTemperature = targetMinTemperature;
         this.targetMaxTemperature = targetMaxTemperature;
         this.warningTemperature = warningTemperature;
+        this.excursionToleranceSeconds = Number(excursionToleranceSeconds);
         this.batteryWarningPercentage = batteryWarningPercentage;
         this.batteryLevel = Math.round(this.batteryPercentage);
         this.lidStatus = resolvedLockState === 'Locked' ? 'closed' : 'open';
@@ -120,7 +126,7 @@ export class SmartContainer {
         this.location = location;
         this.status = resolvedUiStatus;
         this.unitWeight = unitWeight;
-        this.estimatedUnits = estimatedUnits;
+        this.estimatedUnits = resolvedEstimatedUnits;
         this.movements = movements;
     }
 
@@ -167,8 +173,49 @@ export class SmartContainer {
         return new ThermalThresholds({
             minCelsius: this.targetMinTemperature,
             maxCelsius: this.targetMaxTemperature,
-            warningCelsius: this.warningTemperature
+            warningCelsius: this.warningTemperature,
+            excursionToleranceSeconds: this.excursionToleranceSeconds
         });
+    }
+
+    /**
+     * Resolves human-readable SmartBox code shown in UI and referenced by TelemetryLog.containerId.
+     * The .NET API returns numeric `id` + `serialNumber` (e.g. 'SB-0182'), whereas mock db.json puts 'SB-0182' in `id`.
+     * @param {?string|number} id
+     * @param {?string} serialNumber
+     * @returns {string}
+     */
+    static resolveDisplayCode(id, serialNumber) {
+        if (typeof id === 'number' && serialNumber) {
+            return String(serialNumber);
+        }
+        if (serialNumber && /^SB-/i.test(String(serialNumber))) {
+            return String(serialNumber);
+        }
+        return id !== null && id !== undefined ? String(id) : String(serialNumber || '');
+    }
+
+    /**
+     * Checks whether this container matches a route query, API id, or serial number.
+     * @param {?string|number} identifier
+     * @returns {boolean}
+     */
+    matchesIdentifier(identifier) {
+        if (identifier === null || identifier === undefined || identifier === '') return false;
+        const normalized = String(identifier).trim().toLowerCase();
+        if (this.id !== null && this.id !== undefined && String(this.id).trim().toLowerCase() === normalized) return true;
+        if (this.serialNumber && String(this.serialNumber).trim().toLowerCase() === normalized) return true;
+        return false;
+    }
+
+    /**
+     * Matches a TelemetryLog record or identifier against this container (`serialNumber` in .NET or `id` in mock data).
+     * @param {Object|string|number} logOrRef
+     * @returns {boolean}
+     */
+    ownsTelemetryLog(logOrRef) {
+        const ref = typeof logOrRef === 'object' && logOrRef !== null ? logOrRef.containerId : logOrRef;
+        return this.matchesIdentifier(ref);
     }
 
     /**

@@ -40,7 +40,7 @@ const timeLabel = (iso) => {
 // Recent readings of this container plus the current one (chronological)
 const excursionChartData = computed(() => {
   const recent = props.logs
-    .filter(log => log.containerId === props.container.id)
+    .filter(log => props.container.ownsTelemetryLog(log))
     .slice()
     .sort((a, b) => String(a.timestampUtc).localeCompare(String(b.timestampUtc)))
     .slice(-4)
@@ -102,13 +102,13 @@ const events = computed(() => {
     <div class="flex flex-column sm:flex-row sm:align-items-center justify-content-between gap-2">
       <div>
         <div class="breadcrumb-text mb-1">
-          {{ t('telemetry.live.breadcrumb') }} / <strong>{{ container.currentTransferId || container.id }}</strong>
+          {{ t('telemetry.live.breadcrumb') }} / <strong>{{ container.currentTransferId || container.displayCode }}</strong>
         </div>
         <h1 class="screen-title m-0">
           {{ t('telemetry.excursion.title') }}
         </h1>
         <p class="subtitle-text m-0 mt-1">
-          {{ container.id }} · {{ container.ambulancePlate || t('telemetry.detail.no-ambulance') }}
+          {{ container.displayCode }} · {{ container.ambulancePlate || t('telemetry.detail.no-ambulance') }}
         </p>
       </div>
 
@@ -140,7 +140,7 @@ const events = computed(() => {
             </h2>
             <p class="alert-banner-meta m-0 mt-1">
               {{ t('telemetry.excursion.meta', {
-                id: container.id,
+                id: container.displayCode,
                 since: formatDateTime(excursionStartedAt || container.lastTelemetryAt),
                 minutes: elapsedMinutes
               }) }}
@@ -239,7 +239,7 @@ const events = computed(() => {
             </div>
             <div class="flex align-items-center justify-content-between text-xs">
               <dt class="text-muted">{{ t('telemetry.name') }}</dt>
-              <dd class="text-main font-semibold m-0">{{ t('telemetry.excursion.box-battery', { id: container.id, value: container.batteryLevel }) }}</dd>
+              <dd class="text-main font-semibold m-0">{{ t('telemetry.excursion.box-battery', { id: container.displayCode, value: container.batteryLevel }) }}</dd>
             </div>
           </dl>
         </section>
