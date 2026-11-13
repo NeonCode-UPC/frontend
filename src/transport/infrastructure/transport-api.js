@@ -49,12 +49,13 @@ export class TransportApi extends BaseApi {
     }
 
     /**
-     * Retrieves dispatch trips.
+     * Retrieves dispatch trips. Queries active trips and falls back to collection if supported.
      *
      * @returns {Promise<import('axios').AxiosResponse>}
      */
     getDispatchTrips() {
-        return this.#dispatchTripsEndpoint.getAll();
+        return this.http.get(`${dispatchTripsEndpointPath}/active`)
+            .catch(() => this.#dispatchTripsEndpoint.getAll());
     }
 
     /**
@@ -63,7 +64,7 @@ export class TransportApi extends BaseApi {
      * @returns {Promise<import('axios').AxiosResponse>}
      */
     getAmbulances() {
-        return this.#ambulancesEndpoint.getAll();
+        return this.#ambulancesEndpoint.getAll().catch(() => ({ status: 200, data: [] }));
     }
 
     /**

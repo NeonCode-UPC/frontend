@@ -58,6 +58,8 @@ export class TelemetryLogAssembler {
         let resources = [];
         if (Array.isArray(response.data)) {
             resources = response.data;
+        } else if (response.data && Array.isArray(response.data.value)) {
+            resources = response.data.value;
         } else if (response.data && Array.isArray(response.data['telemetry-logs'])) {
             resources = response.data['telemetry-logs'];
         } else if (response.data && typeof response.data === 'object') {

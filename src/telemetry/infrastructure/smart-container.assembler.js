@@ -77,6 +77,8 @@ export class SmartContainerAssembler {
         let resources = [];
         if (Array.isArray(response.data)) {
             resources = response.data;
+        } else if (response.data && Array.isArray(response.data.value)) {
+            resources = response.data.value;
         } else if (response.data && Array.isArray(response.data['smart-containers'])) {
             resources = response.data['smart-containers'];
         } else if (response.data && typeof response.data === 'object') {

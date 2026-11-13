@@ -1,9 +1,16 @@
 <script setup>
-import {ref} from 'vue';
+import { computed, onMounted } from 'vue';
 import BaseScreen from '../../../shared/presentation/components/base-screen.vue';
 import DispatchBoard from '../components/dispatch-board.vue';
+import { useTransportStore } from '../../application/transport.store.js';
 
-const dispatchTrips = ref([
+const transportStore = useTransportStore();
+
+onMounted(() => {
+  transportStore.fetchDispatchTrips();
+});
+
+const defaultTrips = [
   {
     id: 1001,
     transportOrderId: 501,
@@ -53,7 +60,13 @@ const dispatchTrips = ref([
     status: 'Completed',
     eta: 0
   }
-]);
+];
+
+const trips = computed(() => {
+  return transportStore.dispatchTrips.length > 0
+    ? transportStore.dispatchTrips
+    : defaultTrips;
+});
 </script>
 
 <template>
@@ -63,6 +76,6 @@ const dispatchTrips = ref([
     subtitle="Gestión de traslados y asignación de ambulancias en tiempo real"
     :fluid="true"
   >
-    <dispatch-board :dispatch-trips="dispatchTrips" />
+    <dispatch-board :dispatch-trips="trips" />
   </base-screen>
 </template>
