@@ -111,9 +111,24 @@ export const useCustodyStore = defineStore('custody', {
           api.getManifests(),
           api.getAuditEvents()
         ]);
-        this.transfers = transfersResult.data.map(toCustodyTransfer);
-        this.manifests = manifestsResult.data.map(toDigitalAuditManifest);
-        this.auditEvents = auditEventsResult.data;
+        const transfersData = Array.isArray(transfersResult?.data)
+          ? transfersResult.data
+          : Array.isArray(transfersResult?.data?.value)
+            ? transfersResult.data.value
+            : [];
+        const manifestsData = Array.isArray(manifestsResult?.data)
+          ? manifestsResult.data
+          : Array.isArray(manifestsResult?.data?.value)
+            ? manifestsResult.data.value
+            : [];
+        const auditEventsData = Array.isArray(auditEventsResult?.data)
+          ? auditEventsResult.data
+          : Array.isArray(auditEventsResult?.data?.value)
+            ? auditEventsResult.data.value
+            : [];
+        this.transfers = transfersData.map(toCustodyTransfer);
+        this.manifests = manifestsData.map(toDigitalAuditManifest);
+        this.auditEvents = auditEventsData;
         this.initialized = true;
       } catch (error) {
         this.error = messageFrom(error);
