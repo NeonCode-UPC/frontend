@@ -8,7 +8,7 @@ import custodyRoutes from "./custody/presentation/custody-routes.js";
 
 const landing = () => import('./shared/presentation/views/landing.vue');
 const about = () => import('./shared/presentation/views/about.vue');
-const reports = () => import('./shared/presentation/views/reports-view.vue');
+const reports = () => import('./custody/presentation/views/traceability-reports-view.vue');
 const settings = () => import('./shared/presentation/views/settings-view.vue');
 const pageNotFound = () => import('./shared/presentation/views/page-not-found.vue');
 
