@@ -38,14 +38,404 @@
     "contact-title": "B2B Sales Contact"
   },
   "telemetry": {
-    "title": "Smart Container Monitoring (SmartBox)",
-    "subtitle": "Continuous thermal supervision, battery percentage, and electromechanical lid state.",
-    "serial": "Serial / MAC",
-    "temp": "Temperature",
-    "battery": "Battery",
-    "lock-status": "Lock Status",
-    "weight": "Payload Weight",
-    "last-ping": "Last Ping"
+    "name": "SmartBox",
+    "action": {
+      "cancel": "Cancel",
+      "back": "Back",
+      "continue": "Continue"
+    },
+    "connectivity": {
+      "online": "Online",
+      "offline": "Offline"
+    },
+    "state": {
+      "offline": "Disconnected",
+      "critical": "Critical",
+      "available": "Available",
+      "stable": "Stable"
+    },
+    "thermal": {
+      "normal": "In range",
+      "warning": "Preventive warning",
+      "critical": "Thermal excursion"
+    },
+    "signal": {
+      "strong": "Strong",
+      "medium": "Medium",
+      "weak": "Weak",
+      "none": "No signal"
+    },
+    "lid": {
+      "closed": "Closed",
+      "open": "Open"
+    },
+    "movement": {
+      "initial": "Initial load of {count} vial | Initial load of {count} vials",
+      "withdrawal": "Withdrawal of {count} vial | Withdrawal of {count} vials",
+      "deposit": "Deposit of {count} vial | Deposit of {count} vials"
+    },
+    "catalog": {
+      "search-placeholder": "Filter by route, state or SmartBox",
+      "summary": "{total} containers · {offline} offline",
+      "link-action": "Link container",
+      "create-action": "Add SmartBox",
+      "filter-label": "Filter containers by connection",
+      "filter": {
+        "all": "All ({count})",
+        "online": "Online ({count})",
+        "offline": "Offline ({count})",
+        "en-route": "En route ({count})"
+      },
+      "view-label": "Display format",
+      "view-table": "Table view",
+      "view-grid": "Card view",
+      "loading": "Syncing IoT containers with the control center...",
+      "empty": "No SmartBoxes match this filter.",
+      "empty-catalog": "There are no SmartBoxes registered in the database yet.",
+      "reset-filters": "Reset filters",
+      "table-label": "SmartBox containers"
+    },
+    "column": {
+      "smartbox": "SMARTBOX",
+      "ambulance": "AMBULANCE",
+      "temperature": "TEMPERATURE",
+      "battery": "BATTERY",
+      "connectivity": "CONNECTIVITY",
+      "state": "STATE",
+      "time": "TIME",
+      "weight": "WEIGHT",
+      "lid": "LID"
+    },
+    "card": {
+      "aria": "SmartBox {id}, {state}",
+      "temperature": "Temp.",
+      "alert": "Alert",
+      "battery": "Battery",
+      "ambulance": "Ambulance",
+      "live": "Live",
+      "live-tooltip": "Continuous telemetry monitoring",
+      "open-detail": "Open details of {id}"
+    },
+    "detail": {
+      "breadcrumb": "Breadcrumb",
+      "title": "SmartBox {id}",
+      "linked-to": "linked to",
+      "no-ambulance": "no ambulance assigned",
+      "stock-subtitle": "Container detail · stock by weight",
+      "mode-label": "Detail sections",
+      "tab-telemetry": "Telemetry and rules",
+      "tab-stock": "Stock by weight",
+      "unlink": "Unlink",
+      "unlink-confirm": "Unlink container {id} from ambulance {plate}?",
+      "view-live": "View telemetry",
+      "register-withdrawal": "Register withdrawal",
+      "kpis-label": "Current readings",
+      "chart-title": "Temperature · latest readings",
+      "chart-empty": "No readings registered for this container yet.",
+      "chart-summary": "{count} readings between {min} and {max}."
+    },
+    "kpi": {
+      "temperature": "Temperature",
+      "weight": "Weight",
+      "tare": "Tare: {value}",
+      "battery": "12 V battery",
+      "signal": "Signal",
+      "network": "LTE-M network",
+      "lid": "Lid",
+      "lock": "Electromechanical lock",
+      "location": "Location"
+    },
+    "stock": {
+      "total-weight": "Total weight",
+      "last-change": "Last change",
+      "estimated-units": "Estimated units",
+      "movements": "Supply movements",
+      "register": "+ Register",
+      "no-movements": "No movements registered yet.",
+      "calculation": "Stock calculation",
+      "unit-weight": "Weight per unit:",
+      "recorded-diff": "Recorded difference:",
+      "estimated-stock": "Estimated stock:",
+      "units": "{count} unit | {count} units",
+      "sensor-note": "HX711 load cell calibrated for medical precision (±5 g)."
+    },
+    "rules": {
+      "title": "Associated rules",
+      "range": "Range",
+      "edit": "Edit",
+      "warning": "Warning",
+      "battery": "Battery",
+      "battery-value": "Warning at {value} %",
+      "note": "A thermal excursion becomes critical when the reading stays out of range for more than {seconds} s; it is then reported to the control center.",
+      "edit-title": "Edit preservation rules",
+      "min": "Minimum temperature (°C)",
+      "max": "Maximum temperature (°C)",
+      "warning-input": "Preventive warning threshold (°C)",
+      "battery-input": "Battery warning (%)",
+      "invalid": "Check the values: the minimum must be lower than the maximum and the warning must be inside the range.",
+      "save": "Save rules"
+    },
+    "withdrawal": {
+      "title": "Confirm detected withdrawal",
+      "subtitle": "The weight sensor registered a variation",
+      "mass-diff": "Mass difference",
+      "sensor": "HX711 sensor (±5 g)",
+      "estimate": "Estimate ({value} each)",
+      "vials": "{count} vial | {count} vials",
+      "calculation": "Weight-based calculation",
+      "responsible": "Withdrawn by",
+      "responsible-placeholder": "Name and role of the person responsible",
+      "custody-note": "This record will be linked to the chain of custody of SmartBox {id}.",
+      "confirm": "Register withdrawal"
+    },
+    "wizard": {
+      "breadcrumb": "Ambulances / link",
+      "title": "Link container",
+      "steps-label": "Steps",
+      "step-1": "Step 1 of 3 · available ambulance",
+      "step-2": "Step 2 of 3 · SmartBox unique identifier",
+      "step-3": "Step 3 of 3 · confirmation",
+      "step-name-1": "Ambulance",
+      "step-name-2": "SmartBox",
+      "step-name-3": "Confirm",
+      "available-ambulances": "Available ambulances",
+      "chosen": "Selected",
+      "available": "Available",
+      "ambulance": "Ambulance",
+      "container-id": "Container identifier",
+      "select-container": "Select SmartBox",
+      "already-linked": "{id} is already linked to {plate}. Unlink it first.",
+      "ready": "Ready to link to {plate}",
+      "rule-title": "One container per ambulance",
+      "rule-detail": "Each plate accepts a single container at a time.",
+      "summary": "Summary",
+      "activating": "Activating 12 V telemetry...",
+      "waiting-reading": "Waiting for the first container reading",
+      "use-other": "Use another SmartBox",
+      "activate": "Activate telemetry"
+    },
+    "live": {
+      "breadcrumb": "Telemetry",
+      "modes-label": "Telemetry screens",
+      "mode-live": "Live",
+      "mode-excursion": "Thermal excursion",
+      "mode-history": "History 6 h / 12 h / 24 h",
+      "mode-connection": "Connection states",
+      "select-container": "Select SmartBox",
+      "simulate": "Simulate excursion",
+      "stop-simulation": "Stop simulation",
+      "in-transit": "In transit",
+      "signal": "Signal: {value}",
+      "last-reading": "Last reading",
+      "go-to-catalog": "Go to SmartBoxes to register one"
+    },
+    "excursion": {
+      "title": "Thermal excursion",
+      "out-of-range": "Temperature outside the expected range",
+      "in-range": "Temperature inside the expected range",
+      "meta": "{id} · since {since} · {minutes} min ago",
+      "current-temp": "CURRENT TEMPERATURE",
+      "from": "from {value}",
+      "allowed-range": "Allowed range",
+      "state": "State",
+      "out-of-range-short": "Out of range",
+      "tolerance": "Tolerance",
+      "affected": "Affected container",
+      "box-battery": "{id} · battery {value} %",
+      "payload": "Payload",
+      "payload-detail": "{weight} kg net · lid {lid}",
+      "events": "Events",
+      "event-detected": "Excursion detected",
+      "event-warning": "Preventive warning",
+      "event-pending": "Not acknowledged yet",
+      "event-acknowledged": "Alert acknowledged",
+      "pending": "Pending",
+      "done": "Done",
+      "acknowledge": "Acknowledge alert",
+      "view-incidents": "View critical incidents",
+      "view-transfer": "View transfer"
+    },
+    "acknowledge": {
+      "title": "Acknowledge thermal excursion",
+      "box": "SmartBox {id}",
+      "detail": "The temperature is {temp} (upper limit {max}). By acknowledging, you confirm that the crew and the medical center were alerted.",
+      "note": "Immediate action or medical instruction",
+      "placeholder": "E.g. the crew was told to check the 12 V vehicle cable and keep the lid sealed...",
+      "confirm": "Confirm acknowledgement"
+    },
+    "history": {
+      "title": "Telemetry {id}",
+      "subtitle": "History of transfer {transfer}",
+      "subtitle-no-transfer": "Reading history",
+      "window-label": "Time window",
+      "chart-title": "Temperature",
+      "range": "Range {min}–{max}",
+      "empty": "No readings for this container in the selected window.",
+      "table-label": "Telemetry readings of {id}"
+    },
+    "offline": {
+      "subtitle": "Connection states",
+      "loading-title": "Fetching telemetry...",
+      "last-reading": "Last reading: {at}",
+      "error-title": "Telemetry could not be retrieved",
+      "error-detail": "{id} is not responding. Last reading {temp} at {at}.",
+      "retry": "Retry",
+      "all-online": "All containers are reporting"
+    },
+    "chart": {
+      "empty": "Temperature chart without readings.",
+      "summary": "Temperature chart with {count} readings, from {min} to {max}; latest {last}."
+    },
+    "toast": {
+      "withdrawal-summary": "Withdrawal registered",
+      "withdrawal-detail": "The vial withdrawal was recorded in SmartBox {id}.",
+      "linked-summary": "Container linked",
+      "linked-detail": "SmartBox {id} activated in ambulance {plate}.",
+      "error-summary": "Could not save",
+      "error-detail": "Check the connection with the API and try again.",
+      "excursion-summary": "Critical alert: thermal excursion",
+      "excursion-detail": "{id} reached {temp}, outside the safe range.",
+      "stabilized-summary": "Temperature stabilized",
+      "stabilized-detail": "{id} returned to {temp}, inside the allowed range.",
+      "acknowledged-summary": "Alert acknowledged",
+      "acknowledged-detail": "Contingency protocol activated.",
+      "retry-summary": "Polling the IoT gateway...",
+      "retry-detail": "Requesting a new reading from {id}.",
+      "created-summary": "SmartBox registered",
+      "created-detail": "Container {id} was added to the system inventory."
+    },
+    "create": {
+      "breadcrumb": "TELEMETRY · INVENTORY REGISTRATION",
+      "title": "Register new SmartBox",
+      "subtitle": "Register a medical container in the database to enable telemetry, weighing, and transfers.",
+      "serial-label": "Serial number *",
+      "serial-placeholder": "E.g.: SB-2026-001",
+      "serial-hint": "Unique hardware identifier (up to 30 characters).",
+      "model-label": "Hardware form factor *",
+      "model-20l": "StandardBox 20L (standard)",
+      "model-5l": "SmallBox 5L (compact)",
+      "tare-label": "Tare weight *",
+      "initial-temp-label": "Initial temperature *",
+      "thresholds-title": "Initial thermal thresholds",
+      "min-short": "Minimum",
+      "max-short": "Maximum",
+      "warning-short": "Warning",
+      "tolerance-short": "Tolerance",
+      "submit": "Register SmartBox",
+      "errors": {
+        "serial-required": "Enter the SmartBox serial number.",
+        "serial-too-long": "Serial number must not exceed {max} characters.",
+        "duplicate-serial": "A SmartBox with serial {serial} is already registered.",
+        "tare-invalid": "Enter a valid tare weight of 0 kg or greater.",
+        "temp-invalid": "Enter a valid initial temperature.",
+        "tolerance-invalid": "Tolerance must be greater than 0 seconds.",
+        "submit-failed": "Could not register the SmartBox in the API. Check your connection and try again."
+      }
+    }
+  },
+  "iam": {
+    "loading": "Loading...",
+    "action": {
+      "cancel": "Cancel",
+      "delete": "Delete"
+    },
+    "error": {
+      "load": "The data could not be loaded. Check the mock API.",
+      "save": "The change could not be saved."
+    },
+    "role": {
+      "AmbulanceDriver": "Ambulance driver",
+      "Paramedic": "Paramedic",
+      "FleetDispatcher": "Fleet dispatcher",
+      "ClinicalPharmacist": "Clinical pharmacist",
+      "ReceivingSurgeon": "Receiving physician",
+      "QualityAuditor": "Quality auditor",
+      "SystemAdministrator": "System administrator"
+    },
+    "status": {
+      "active": "Active",
+      "pending": "Pending activation",
+      "inactive": "Inactive"
+    },
+    "institution-type": {
+      "PublicHospital": "Public hospital",
+      "PrivateClinic": "Private clinic",
+      "AmbulanceNetwork": "Ambulance network",
+      "PharmaceuticalLab": "Pharmaceutical laboratory"
+    },
+    "column": {
+      "user": "USER",
+      "email": "EMAIL",
+      "role": "ROLE",
+      "institution": "INSTITUTION",
+      "status": "STATUS",
+      "actions": "ACTIONS"
+    },
+    "users": {
+      "breadcrumb": "IAM / Users",
+      "title": "Users and roles",
+      "subtitle": "Institutional staff directory and access roles",
+      "new": "New user",
+      "summary-label": "User summary",
+      "kpi-registered": "Registered users",
+      "kpi-registered-sub": "Accounts in the institution",
+      "kpi-active": "Active users",
+      "kpi-active-sub": "Staff who already signed in",
+      "kpi-pending": "Pending",
+      "kpi-pending-sub": "Accounts waiting for their first sign-in",
+      "search-placeholder": "Search user, email or role...",
+      "all-roles": "All roles",
+      "role-filter": "Filter by role",
+      "table-label": "Institution users",
+      "empty-title": "No users found",
+      "empty-message": "Try another search term or role.",
+      "delete-title": "Delete user",
+      "delete-confirm": "Do you want to delete the user {name}?",
+      "delete-aria": "Delete {name}",
+      "register-title": "Register user",
+      "first-name": "First name",
+      "last-name": "Last name",
+      "select-role": "Select a role",
+      "register-note": "The account is created in {institution} and stays pending until its first sign-in.",
+      "register-invalid": "Complete the name, a valid email and the role.",
+      "register-confirm": "Register",
+      "registered": "User registered"
+    },
+    "subscription": {
+      "breadcrumb": "IAM / Subscription",
+      "title": "Institutional subscription",
+      "subtitle": "Active plan and capacity of the institution",
+      "summary-label": "Subscription summary",
+      "organization": "Organization",
+      "current-plan": "Current plan",
+      "per-month": "/ month",
+      "users-sub": "{total} registered accounts",
+      "available": "Available plans",
+      "available-sub": "Choose the plan that fits your institution.",
+      "badge-current": "Current plan",
+      "badge-available": "Available",
+      "max-boxes": "Up to {count} SmartBox",
+      "max-ambulances": "Up to {count} ambulances",
+      "sla": "Support response in {hours} h",
+      "retention": "Telemetry kept for {months} months",
+      "select": "Select plan",
+      "select-aria": "Select the {plan} plan",
+      "changed": "Plan updated"
+    },
+    "plan": {
+      "BASIC": {
+        "name": "Basic",
+        "description": "Essential Medical SMARTBOX features for small operations."
+      },
+      "PROFESSIONAL": {
+        "name": "Professional",
+        "description": "For operation teams with several ambulances."
+      },
+      "INSTITUTIONAL": {
+        "name": "Institutional",
+        "description": "Full management for hospitals and clinics."
+      }
+    }
   },
   "transport": {
     "title": "Medical Transport Planning & Dispatching",

@@ -38,14 +38,404 @@
     "contact-title": "Contacto Comercial B2B"
   },
   "telemetry": {
-    "title": "Monitoreo de Contenedores Inteligentes (SmartBox)",
-    "subtitle": "Supervisión térmica continua, porcentaje de batería y estado electromecánico de la tapa.",
-    "serial": "N° Serie / MAC",
-    "temp": "Temperatura",
-    "battery": "Batería",
-    "lock-status": "Cerrojo",
-    "weight": "Peso Carga",
-    "last-ping": "Último Ping"
+    "name": "SmartBox",
+    "action": {
+      "cancel": "Cancelar",
+      "back": "Atrás",
+      "continue": "Continuar"
+    },
+    "connectivity": {
+      "online": "En línea",
+      "offline": "Sin conexión"
+    },
+    "state": {
+      "offline": "Desconectado",
+      "critical": "Crítica",
+      "available": "Disponible",
+      "stable": "Estable"
+    },
+    "thermal": {
+      "normal": "En rango",
+      "warning": "Alerta preventiva",
+      "critical": "Excursión térmica"
+    },
+    "signal": {
+      "strong": "Fuerte",
+      "medium": "Media",
+      "weak": "Débil",
+      "none": "Sin señal"
+    },
+    "lid": {
+      "closed": "Cerrada",
+      "open": "Abierta"
+    },
+    "movement": {
+      "initial": "Carga inicial de {count} vial | Carga inicial de {count} viales",
+      "withdrawal": "Retiro de {count} vial | Retiro de {count} viales",
+      "deposit": "Ingreso de {count} vial | Ingreso de {count} viales"
+    },
+    "catalog": {
+      "search-placeholder": "Filtrar por ruta, estado o SmartBox",
+      "summary": "{total} contenedores · {offline} sin conexión",
+      "link-action": "Vincular contenedor",
+      "create-action": "Agregar SmartBox",
+      "filter-label": "Filtrar contenedores por conexión",
+      "filter": {
+        "all": "Todos ({count})",
+        "online": "En línea ({count})",
+        "offline": "Sin conexión ({count})",
+        "en-route": "En ruta ({count})"
+      },
+      "view-label": "Formato de visualización",
+      "view-table": "Vista de tabla",
+      "view-grid": "Vista de tarjetas",
+      "loading": "Sincronizando contenedores IoT con el centro de control...",
+      "empty": "No se encontraron SmartBoxes para este filtro.",
+      "empty-catalog": "Aún no hay SmartBoxes registrados en la base de datos.",
+      "reset-filters": "Restablecer filtros",
+      "table-label": "Contenedores SmartBox"
+    },
+    "column": {
+      "smartbox": "SMARTBOX",
+      "ambulance": "AMBULANCIA",
+      "temperature": "TEMPERATURA",
+      "battery": "BATERÍA",
+      "connectivity": "CONECTIVIDAD",
+      "state": "ESTADO",
+      "time": "HORA",
+      "weight": "PESO",
+      "lid": "TAPA"
+    },
+    "card": {
+      "aria": "SmartBox {id}, {state}",
+      "temperature": "Temp.",
+      "alert": "Alerta",
+      "battery": "Batería",
+      "ambulance": "Ambulancia",
+      "live": "En vivo",
+      "live-tooltip": "Supervisión telemétrica continua",
+      "open-detail": "Abrir el detalle de {id}"
+    },
+    "detail": {
+      "breadcrumb": "Ruta de navegación",
+      "title": "SmartBox {id}",
+      "linked-to": "vinculado a",
+      "no-ambulance": "sin ambulancia asignada",
+      "stock-subtitle": "Detalle del contenedor · stock por peso",
+      "mode-label": "Secciones del detalle",
+      "tab-telemetry": "Telemetría y reglas",
+      "tab-stock": "Stock por peso",
+      "unlink": "Desvincular",
+      "unlink-confirm": "¿Confirmas desvincular el contenedor {id} de la ambulancia {plate}?",
+      "view-live": "Ver telemetría",
+      "register-withdrawal": "Registrar retiro",
+      "kpis-label": "Lecturas actuales",
+      "chart-title": "Temperatura · últimas lecturas",
+      "chart-empty": "Aún no hay lecturas registradas para este contenedor.",
+      "chart-summary": "{count} lecturas entre {min} y {max}."
+    },
+    "kpi": {
+      "temperature": "Temperatura",
+      "weight": "Peso",
+      "tare": "Tara: {value}",
+      "battery": "Batería 12 V",
+      "signal": "Señal",
+      "network": "Red LTE-M",
+      "lid": "Tapa",
+      "lock": "Cerrojo electromecánico",
+      "location": "Ubicación"
+    },
+    "stock": {
+      "total-weight": "Peso total",
+      "last-change": "Último cambio",
+      "estimated-units": "Unidades estimadas",
+      "movements": "Movimientos de insumos",
+      "register": "+ Registrar",
+      "no-movements": "Aún no hay movimientos registrados.",
+      "calculation": "Cálculo de stock",
+      "unit-weight": "Peso por unidad:",
+      "recorded-diff": "Diferencia registrada:",
+      "estimated-stock": "Stock estimado:",
+      "units": "{count} unidad | {count} unidades",
+      "sensor-note": "Celda de carga HX711 calibrada con precisión médica (±5 g)."
+    },
+    "rules": {
+      "title": "Reglas asociadas",
+      "range": "Rango",
+      "edit": "Editar",
+      "warning": "Aviso",
+      "battery": "Batería",
+      "battery-value": "Aviso al {value} %",
+      "note": "Una excursión térmica es crítica cuando la lectura sigue fuera de rango por más de {seconds} s; entonces se reporta al centro de control.",
+      "edit-title": "Editar reglas de conservación",
+      "min": "Temperatura mínima (°C)",
+      "max": "Temperatura máxima (°C)",
+      "warning-input": "Umbral preventivo de alerta (°C)",
+      "battery-input": "Aviso de batería (%)",
+      "invalid": "Revisa los valores: la mínima debe ser menor que la máxima y el aviso debe estar dentro del rango.",
+      "save": "Guardar reglas"
+    },
+    "withdrawal": {
+      "title": "Confirmar retiro detectado",
+      "subtitle": "El sensor de peso registró una variación",
+      "mass-diff": "Diferencia de masa",
+      "sensor": "Sensor HX711 (±5 g)",
+      "estimate": "Estimado ({value} c/u)",
+      "vials": "{count} vial | {count} viales",
+      "calculation": "Cálculo por peso",
+      "responsible": "Retirado por",
+      "responsible-placeholder": "Nombre y cargo del responsable",
+      "custody-note": "Este registro se vinculará a la cadena de custodia del SmartBox {id}.",
+      "confirm": "Registrar retiro"
+    },
+    "wizard": {
+      "breadcrumb": "Ambulancias / vincular",
+      "title": "Vincular contenedor",
+      "steps-label": "Pasos",
+      "step-1": "Paso 1 de 3 · ambulancia disponible",
+      "step-2": "Paso 2 de 3 · identificador único del SmartBox",
+      "step-3": "Paso 3 de 3 · confirmación",
+      "step-name-1": "Ambulancia",
+      "step-name-2": "SmartBox",
+      "step-name-3": "Confirmar",
+      "available-ambulances": "Ambulancias disponibles",
+      "chosen": "Elegida",
+      "available": "Disponible",
+      "ambulance": "Ambulancia",
+      "container-id": "Identificador del contenedor",
+      "select-container": "Seleccionar SmartBox",
+      "already-linked": "{id} ya está vinculado a {plate}. Desvincúlalo primero.",
+      "ready": "Listo para vincular a {plate}",
+      "rule-title": "Un contenedor por ambulancia",
+      "rule-detail": "Cada placa admite un solo contenedor a la vez.",
+      "summary": "Resumen",
+      "activating": "Activando telemetría de 12 V...",
+      "waiting-reading": "Esperando la primera lectura del contenedor",
+      "use-other": "Usar otro SmartBox",
+      "activate": "Activar telemetría"
+    },
+    "live": {
+      "breadcrumb": "Telemetría",
+      "modes-label": "Pantallas de telemetría",
+      "mode-live": "En vivo",
+      "mode-excursion": "Excursión térmica",
+      "mode-history": "Historial 6 h / 12 h / 24 h",
+      "mode-connection": "Estados de conexión",
+      "select-container": "Seleccionar SmartBox",
+      "simulate": "Simular excursión",
+      "stop-simulation": "Detener simulación",
+      "in-transit": "En tránsito",
+      "signal": "Señal: {value}",
+      "last-reading": "Última lectura",
+      "go-to-catalog": "Ir a SmartBoxes para registrar uno"
+    },
+    "excursion": {
+      "title": "Excursión térmica",
+      "out-of-range": "Temperatura fuera del rango esperado",
+      "in-range": "Temperatura dentro del rango esperado",
+      "meta": "{id} · desde {since} · hace {minutes} min",
+      "current-temp": "TEMPERATURA ACTUAL",
+      "from": "desde {value}",
+      "allowed-range": "Rango permitido",
+      "state": "Estado",
+      "out-of-range-short": "Fuera de rango",
+      "tolerance": "Tolerancia",
+      "affected": "Contenedor afectado",
+      "box-battery": "{id} · batería {value} %",
+      "payload": "Carga",
+      "payload-detail": "{weight} kg netos · tapa {lid}",
+      "events": "Eventos",
+      "event-detected": "Excursión detectada",
+      "event-warning": "Alerta preventiva",
+      "event-pending": "Aún sin reconocer",
+      "event-acknowledged": "Alerta reconocida",
+      "pending": "Pendiente",
+      "done": "Hecho",
+      "acknowledge": "Reconocer alerta",
+      "view-incidents": "Ver incidentes críticos",
+      "view-transfer": "Ver traslado"
+    },
+    "acknowledge": {
+      "title": "Reconocer excursión térmica",
+      "box": "SmartBox {id}",
+      "detail": "La temperatura está en {temp} (límite superior {max}). Al reconocer, confirmas que la tripulación y la central médica fueron alertadas.",
+      "note": "Acción o instrucción médica inmediata",
+      "placeholder": "Ej.: se indicó a la cabina revisar el cable vehicular de 12 V y mantener sellada la tapa...",
+      "confirm": "Confirmar acuse de recibo"
+    },
+    "history": {
+      "title": "Telemetría {id}",
+      "subtitle": "Historial del traslado {transfer}",
+      "subtitle-no-transfer": "Historial de lecturas",
+      "window-label": "Ventana de tiempo",
+      "chart-title": "Temperatura",
+      "range": "Rango {min}–{max}",
+      "empty": "No hay lecturas de este contenedor en la ventana elegida.",
+      "table-label": "Lecturas de telemetría de {id}"
+    },
+    "offline": {
+      "subtitle": "Estados de conexión",
+      "loading-title": "Obteniendo telemetría...",
+      "last-reading": "Última lectura: {at}",
+      "error-title": "No se pudo obtener la telemetría",
+      "error-detail": "{id} no responde. Última lectura {temp} a las {at}.",
+      "retry": "Reintentar",
+      "all-online": "Todos los contenedores están reportando"
+    },
+    "chart": {
+      "empty": "Gráfico de temperatura sin lecturas.",
+      "summary": "Gráfico de temperatura con {count} lecturas, de {min} a {max}; la última {last}."
+    },
+    "toast": {
+      "withdrawal-summary": "Retiro registrado",
+      "withdrawal-detail": "Se registró el retiro de viales en el SmartBox {id}.",
+      "linked-summary": "Contenedor vinculado",
+      "linked-detail": "SmartBox {id} activado en la ambulancia {plate}.",
+      "error-summary": "No se pudo guardar",
+      "error-detail": "Revisa la conexión con la API e inténtalo de nuevo.",
+      "excursion-summary": "Alerta crítica: excursión térmica",
+      "excursion-detail": "{id} alcanzó {temp}, fuera del rango seguro.",
+      "stabilized-summary": "Temperatura estabilizada",
+      "stabilized-detail": "{id} volvió a {temp}, dentro del rango permitido.",
+      "acknowledged-summary": "Alerta reconocida",
+      "acknowledged-detail": "Protocolo de contingencia activado.",
+      "retry-summary": "Sondeando el gateway IoT...",
+      "retry-detail": "Solicitando una nueva lectura a {id}.",
+      "created-summary": "SmartBox registrado",
+      "created-detail": "El contenedor {id} se agregó al inventario del sistema."
+    },
+    "create": {
+      "breadcrumb": "TELEMETRÍA · ALTA DE INVENTARIO",
+      "title": "Registrar nuevo SmartBox",
+      "subtitle": "Da de alta un contenedor médico en la base de datos para habilitar telemetría, pesaje y traslados.",
+      "serial-label": "Número de serie *",
+      "serial-placeholder": "Ej.: SB-2026-001",
+      "serial-hint": "Identificador único de hardware (máximo 30 caracteres).",
+      "model-label": "Modelo físico *",
+      "model-20l": "StandardBox 20L (estándar)",
+      "model-5l": "SmallBox 5L (compacto)",
+      "tare-label": "Peso tara *",
+      "initial-temp-label": "Temperatura inicial *",
+      "thresholds-title": "Umbrales térmicos iniciales",
+      "min-short": "Mínimo",
+      "max-short": "Máximo",
+      "warning-short": "Preventiva",
+      "tolerance-short": "Tolerancia",
+      "submit": "Registrar SmartBox",
+      "errors": {
+        "serial-required": "Ingresa el número de serie del SmartBox.",
+        "serial-too-long": "El número de serie no debe superar {max} caracteres.",
+        "duplicate-serial": "Ya existe un SmartBox registrado con el serial {serial}.",
+        "tare-invalid": "Ingresa un peso tara válido mayor o igual a 0 kg.",
+        "temp-invalid": "Ingresa una temperatura inicial válida.",
+        "tolerance-invalid": "La tolerancia debe ser mayor a 0 segundos.",
+        "submit-failed": "No se pudo registrar el SmartBox en la API. Verifica la conexión e inténtalo de nuevo."
+      }
+    }
+  },
+  "iam": {
+    "loading": "Cargando...",
+    "action": {
+      "cancel": "Cancelar",
+      "delete": "Eliminar"
+    },
+    "error": {
+      "load": "No se pudieron cargar los datos. Revisa la API simulada.",
+      "save": "No se pudo guardar el cambio."
+    },
+    "role": {
+      "AmbulanceDriver": "Conductor de ambulancia",
+      "Paramedic": "Paramédico",
+      "FleetDispatcher": "Despachador de flota",
+      "ClinicalPharmacist": "Químico farmacéutico",
+      "ReceivingSurgeon": "Médico receptor",
+      "QualityAuditor": "Auditor de calidad",
+      "SystemAdministrator": "Administrador del sistema"
+    },
+    "status": {
+      "active": "Activo",
+      "pending": "Pendiente de activación",
+      "inactive": "Inactivo"
+    },
+    "institution-type": {
+      "PublicHospital": "Hospital público",
+      "PrivateClinic": "Clínica privada",
+      "AmbulanceNetwork": "Red de ambulancias",
+      "PharmaceuticalLab": "Laboratorio farmacéutico"
+    },
+    "column": {
+      "user": "USUARIO",
+      "email": "CORREO",
+      "role": "ROL",
+      "institution": "INSTITUCIÓN",
+      "status": "ESTADO",
+      "actions": "ACCIONES"
+    },
+    "users": {
+      "breadcrumb": "IAM / Usuarios",
+      "title": "Usuarios y roles",
+      "subtitle": "Directorio del personal institucional y roles de acceso",
+      "new": "Nuevo usuario",
+      "summary-label": "Resumen de usuarios",
+      "kpi-registered": "Usuarios registrados",
+      "kpi-registered-sub": "Cuentas de la institución",
+      "kpi-active": "Usuarios activos",
+      "kpi-active-sub": "Personal que ya inició sesión",
+      "kpi-pending": "Pendientes",
+      "kpi-pending-sub": "Cuentas a la espera de su primer inicio de sesión",
+      "search-placeholder": "Buscar usuario, correo o rol...",
+      "all-roles": "Todos los roles",
+      "role-filter": "Filtrar por rol",
+      "table-label": "Usuarios de la institución",
+      "empty-title": "No se encontraron usuarios",
+      "empty-message": "Intenta con otro término de búsqueda o rol.",
+      "delete-title": "Eliminar usuario",
+      "delete-confirm": "¿Deseas eliminar al usuario {name}?",
+      "delete-aria": "Eliminar a {name}",
+      "register-title": "Registrar usuario",
+      "first-name": "Nombres",
+      "last-name": "Apellidos",
+      "select-role": "Selecciona un rol",
+      "register-note": "La cuenta se crea en {institution} y queda pendiente hasta su primer inicio de sesión.",
+      "register-invalid": "Completa los nombres, un correo válido y el rol.",
+      "register-confirm": "Registrar",
+      "registered": "Usuario registrado"
+    },
+    "subscription": {
+      "breadcrumb": "IAM / Suscripción",
+      "title": "Suscripción institucional",
+      "subtitle": "Plan activo y capacidad de la institución",
+      "summary-label": "Resumen de la suscripción",
+      "organization": "Organización",
+      "current-plan": "Plan actual",
+      "per-month": "/ mes",
+      "users-sub": "{total} cuentas registradas",
+      "available": "Planes disponibles",
+      "available-sub": "Selecciona el plan que mejor se adapte a tu institución.",
+      "badge-current": "Plan actual",
+      "badge-available": "Disponible",
+      "max-boxes": "Hasta {count} SmartBox",
+      "max-ambulances": "Hasta {count} ambulancias",
+      "sla": "Respuesta de soporte en {hours} h",
+      "retention": "Telemetría guardada por {months} meses",
+      "select": "Seleccionar plan",
+      "select-aria": "Seleccionar el plan {plan}",
+      "changed": "Plan actualizado"
+    },
+    "plan": {
+      "BASIC": {
+        "name": "Básico",
+        "description": "Funciones esenciales de Medical SMARTBOX para operaciones pequeñas."
+      },
+      "PROFESSIONAL": {
+        "name": "Profesional",
+        "description": "Para equipos de operación con varias ambulancias."
+      },
+      "INSTITUTIONAL": {
+        "name": "Institucional",
+        "description": "Gestión completa para hospitales y clínicas."
+      }
+    }
   },
   "transport": {
     "title": "Planificación y Despacho de Transporte Médico",

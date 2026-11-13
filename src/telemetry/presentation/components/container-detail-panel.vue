@@ -1,10 +1,15 @@
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import { useRouter } from 'vue-router';
+import { useI18n } from 'vue-i18n';
+import { useToast } from 'primevue/usetoast';
 import { useTelemetryStore } from '../../application/telemetry.store.js';
+import { UnlinkContainerCommand } from '../../domain/unlink-container.command.js';
+import { ConfigureThermalThresholdsCommand } from '../../domain/configure-thermal-thresholds.command.js';
+import { useTelemetryFormat } from '../composables/use-telemetry-format.js';
 
 /**
- * Container detail panel implementing telemetry indicators, 6h continuous curve,
+ * Container detail panel implementing telemetry indicators, recent temperature curve,
  * associated rules, and HX711 weight-based stock management (MBA-30 & MBA-51).
  */
 const props = defineProps({
@@ -16,32 +21,44 @@ const props = defineProps({
 
 const emit = defineEmits(['back', 'open-withdrawal-modal', 'unlinked']);
 const router = useRouter();
+const { t } = useI18n();
+const toast = useToast();
 const telemetryStore = useTelemetryStore();
+const {
+  formatNumber, formatTemperature, formatKilograms, formatWeightDiff, movementDescription
+} = useTelemetryFormat();
 
 // View tab mode: 'telemetry' (MBA-30) or 'stock' (MBA-51)
 const activeTab = ref('telemetry');
 
+const thresholds = computed(() => props.container.thermalThresholds);
+
 // Associated rules editing modal state
 const isEditingRules = ref(false);
-const editMinTemp = ref(props.container.targetMinTemperature || 2.0);
-const editMaxTemp = ref(props.container.targetMaxTemperature || 8.0);
-const editWarningTemp = ref(7.5);
-const editBatteryWarning = ref(20);
+const editMinTemp = ref(thresholds.value.minCelsius);
+const editMaxTemp = ref(thresholds.value.maxCelsius);
+const editWarningTemp = ref(thresholds.value.warningCelsius);
+const editBatteryWarning = ref(props.container.batteryWarningPercentage);
+const rulesError = ref('');
 
 // Status computations
 const isOnline = computed(() => props.container.status !== 'offline');
 const isLinked = computed(() => Boolean(props.container.ambulancePlate));
+const thermalState = computed(() => props.container.thermalState);
 
-// 6-hour continuous chart data points
-const chartPoints = ref([
-  { time: '08:00', temp: 4.2 },
-  { time: '09:00', temp: 4.1 },
-  { time: '10:00', temp: 4.3 },
-  { time: '11:00', temp: 4.4 },
-  { time: '12:00', temp: 4.2 },
-  { time: '13:00', temp: 4.0 },
-  { time: '14:00', temp: 4.2 }
-]);
+// Recent temperature curve built from the container telemetry logs
+async function loadLogs() {
+  await telemetryStore.fetchTelemetryLogs(props.container.id);
+}
+onMounted(loadLogs);
+watch(() => props.container.id, loadLogs);
+
+const chartPoints = computed(() => telemetryStore.telemetryLogs
+  .filter(log => props.container.ownsTelemetryLog(log))
+  .slice()
+  .sort((a, b) => String(a.timestampUtc).localeCompare(String(b.timestampUtc)))
+  .slice(-7)
+  .map(log => ({ time: log.time, temp: log.temperatureCelsius })));
 
 // Hovered tooltip for chart
 const hoveredPoint = ref(null);
@@ -53,15 +70,15 @@ const paddingX = 40;
 const paddingY = 30;
 
 function getY(temp) {
-  // Map 2°C (bottom) to 8°C (top)
-  const minT = 1.5;
-  const maxT = 8.5;
+  const minT = thresholds.value.minCelsius - 0.5;
+  const maxT = thresholds.value.maxCelsius + 0.5;
   const clamped = Math.max(minT, Math.min(maxT, temp));
   const ratio = (clamped - minT) / (maxT - minT);
   return (svgHeight - paddingY) - ratio * (svgHeight - 2 * paddingY);
 }
 
 function getX(index, total) {
+  if (total < 2) return svgWidth / 2;
   return paddingX + (index / (total - 1)) * (svgWidth - 2 * paddingX);
 }
 
@@ -92,42 +109,64 @@ const svgAreaPath = computed(() => {
   return `${line} L ${lastX} ${bottomY} L ${firstX} ${bottomY} Z`;
 });
 
-// Movements list with defaults matching MBA-51
-const movements = computed(() => {
-  if (props.container.movements && props.container.movements.length > 0) {
-    return props.container.movements;
-  }
-  return [
-    { id: 'MOV-04', time: '13:20', type: 'withdrawal', description: 'Retiro de 2 viales', weightDiff: '-0.8 kg', units: -2, responsible: 'Marta Rojas' },
-    { id: 'MOV-03', time: '11:05', type: 'deposit', description: 'Ingreso de 6 viales', weightDiff: '+2.4 kg', units: 6, responsible: 'Marta Rojas' },
-    { id: 'MOV-01', time: '07:40', type: 'initial', description: 'Carga inicial', weightDiff: '19.2 kg', units: 24, responsible: 'Marta Rojas' }
-  ];
+const chartSummary = computed(() => {
+  if (!chartPoints.value.length) return t('telemetry.detail.chart-empty');
+  const temps = chartPoints.value.map(p => p.temp);
+  return t('telemetry.detail.chart-summary', {
+    count: chartPoints.value.length,
+    min: formatTemperature(Math.min(...temps)),
+    max: formatTemperature(Math.max(...temps))
+  });
 });
 
+// Payload movements registered by the load cell (stored oldest first, shown newest first)
+const movements = computed(() => [...(props.container.movements || [])].reverse());
+const lastMovement = computed(() => movements.value.find(m => m.type !== 'initial') || null);
+
 function navigateToLive() {
-  router.push('/telemetry/live');
+  router.push({ path: '/telemetry/live', query: { container: props.container.displayCode || props.container.id } });
 }
 
 async function handleUnlink() {
-  if (!confirm(`¿Confirmas desvincular el contenedor ${props.container.id} de la ambulancia ${props.container.ambulancePlate}?`)) return;
-  await telemetryStore.unlinkContainer(props.container.id);
-  emit('unlinked', props.container.id);
+  const message = t('telemetry.detail.unlink-confirm', { id: props.container.displayCode, plate: props.container.ambulancePlate });
+  if (!window.confirm(message)) return;
+  try {
+    await telemetryStore.unlinkContainer(new UnlinkContainerCommand({ containerId: props.container.id }));
+    emit('unlinked', props.container.id);
+  } catch {
+    toast.add({
+      severity: 'error',
+      summary: t('telemetry.toast.error-summary'),
+      detail: t('telemetry.toast.error-detail'),
+      life: 4000
+    });
+  }
 }
 
 function openEditRules() {
-  editMinTemp.value = props.container.targetMinTemperature || 2.0;
-  editMaxTemp.value = props.container.targetMaxTemperature || 8.0;
+  editMinTemp.value = thresholds.value.minCelsius;
+  editMaxTemp.value = thresholds.value.maxCelsius;
+  editWarningTemp.value = thresholds.value.warningCelsius;
+  editBatteryWarning.value = props.container.batteryWarningPercentage;
+  rulesError.value = '';
   isEditingRules.value = true;
 }
 
 async function saveRules() {
-  await telemetryStore.updateContainerRules({
-    containerId: props.container.id,
-    minTemp: editMinTemp.value,
-    maxTemp: editMaxTemp.value,
-    warningTemp: editWarningTemp.value,
-    batteryWarning: editBatteryWarning.value
-  });
+  let command;
+  try {
+    command = new ConfigureThermalThresholdsCommand({
+      containerId: props.container.id,
+      minTemp: editMinTemp.value,
+      maxTemp: editMaxTemp.value,
+      warningTemp: editWarningTemp.value,
+      batteryWarning: editBatteryWarning.value
+    });
+  } catch {
+    rulesError.value = t('telemetry.rules.invalid');
+    return;
+  }
+  await telemetryStore.updateContainerRules(command);
   isEditingRules.value = false;
 }
 </script>
@@ -137,76 +176,79 @@ async function saveRules() {
     <!-- Top Header: Breadcrumb, Title, Mode Selector, Actions -->
     <header class="detail-header flex flex-column md:flex-row md:align-items-center justify-content-between gap-3">
       <div>
-        <div class="breadcrumb flex align-items-center gap-1 text-xs text-muted mb-1">
-          <span class="breadcrumb-link cursor-pointer" @click="emit('back')">SmartBox</span>
-          <span>/</span>
-          <strong class="text-main">{{ container.id }}</strong>
-        </div>
+        <nav class="breadcrumb flex align-items-center gap-1 text-xs text-muted mb-1" :aria-label="t('telemetry.detail.breadcrumb')">
+          <button type="button" class="breadcrumb-link cursor-pointer border-none bg-transparent p-0 text-xs text-muted" @click="emit('back')">
+            {{ t('telemetry.name') }}
+          </button>
+          <span aria-hidden="true">/</span>
+          <strong class="text-main" aria-current="page">{{ container.displayCode }}</strong>
+        </nav>
 
         <div class="flex align-items-center gap-3">
-          <h1 class="text-2xl md:text-3xl font-bold text-main m-0">SmartBox {{ container.id }}</h1>
+          <h1 class="text-2xl md:text-3xl font-bold text-main m-0">{{ t('telemetry.detail.title', { id: container.displayCode }) }}</h1>
           <span
             class="status-pill text-xs font-semibold px-3 py-1 border-round-pill flex align-items-center gap-1"
             :class="isOnline ? 'pill-online' : 'pill-offline'"
+            role="status"
           >
-            <span class="status-dot" :class="isOnline ? 'dot-online' : 'dot-offline'"></span>
-            {{ isOnline ? 'En línea' : 'Sin conexión' }}
+            <span class="status-dot" :class="isOnline ? 'dot-online' : 'dot-offline'" aria-hidden="true"></span>
+            {{ isOnline ? t('telemetry.connectivity.online') : t('telemetry.connectivity.offline') }}
           </span>
         </div>
 
         <p class="subtitle text-xs text-muted mt-1 mb-0">
           <template v-if="activeTab === 'telemetry'">
-            {{ container.model || 'Standard Box' }} ·
-            <span v-if="container.ambulancePlate">vinculado a <strong>{{ container.ambulancePlate }}</strong></span>
-            <span v-else>sin ambulancia asignada</span>
+            {{ container.model }} ·
+            <span v-if="container.ambulancePlate">{{ t('telemetry.detail.linked-to') }} <strong>{{ container.ambulancePlate }}</strong></span>
+            <span v-else>{{ t('telemetry.detail.no-ambulance') }}</span>
           </template>
           <template v-else>
-            Detalle del contenedor · stock por peso
+            {{ t('telemetry.detail.stock-subtitle') }}
           </template>
         </p>
       </div>
 
       <!-- Action buttons & Mode Switcher -->
       <div class="header-actions flex flex-wrap align-items-center gap-2">
-        <!-- View mode tabs pill -->
-        <div class="mode-tabs p-1 border-round-pill flex align-items-center">
+        <div class="mode-tabs p-1 border-round-pill flex align-items-center" role="tablist" :aria-label="t('telemetry.detail.mode-label')">
           <button
             type="button"
+            role="tab"
+            :aria-selected="activeTab === 'telemetry'"
             class="tab-btn text-xs font-semibold px-3 py-1 border-round-pill border-none cursor-pointer"
             :class="{ 'tab-btn-active': activeTab === 'telemetry' }"
             @click="activeTab = 'telemetry'"
           >
-            Telemetría y reglas
+            {{ t('telemetry.detail.tab-telemetry') }}
           </button>
           <button
             type="button"
+            role="tab"
+            :aria-selected="activeTab === 'stock'"
             class="tab-btn text-xs font-semibold px-3 py-1 border-round-pill border-none cursor-pointer"
             :class="{ 'tab-btn-active': activeTab === 'stock' }"
             @click="activeTab = 'stock'"
           >
-            Stock por peso
+            {{ t('telemetry.detail.tab-stock') }}
           </button>
         </div>
 
-        <!-- Unlink Button (MBA-30) -->
         <pv-button
           v-if="isLinked"
-          label="Desvincular"
+          :label="t('telemetry.detail.unlink')"
           icon="pi pi-sync"
           class="btn-unlink px-3 py-2 text-xs border-round-pill font-medium"
           @click="handleUnlink"
         />
 
-        <!-- Live Telemetry Button (MBA-30) -->
         <pv-button
-          label="Ver telemetría"
+          :label="t('telemetry.detail.view-live')"
           class="btn-live px-3 py-2 text-xs border-round-pill font-bold"
           @click="navigateToLive"
         />
 
-        <!-- Register Withdrawal Button (MBA-51) -->
         <pv-button
-          label="Registrar retiro"
+          :label="t('telemetry.detail.register-withdrawal')"
           class="btn-withdraw px-3 py-2 text-xs border-round-pill font-semibold"
           @click="emit('open-withdrawal-modal', container)"
         />
@@ -215,120 +257,117 @@ async function saveRules() {
 
     <!-- ================= METRIC CARDS / GAUGES ================= -->
 
-    <!-- MODE A: Telemetría general y gauges (MBA-30: 6 cards) -->
-    <section v-if="activeTab === 'telemetry'" class="kpi-grid grid m-0 gap-2">
-      <!-- 1. Temperatura -->
+    <!-- MODE A: General telemetry (MBA-30: 6 cards) -->
+    <section v-if="activeTab === 'telemetry'" class="kpi-grid grid m-0 gap-2" :aria-label="t('telemetry.detail.kpis-label')">
       <div class="col-6 sm:col-4 md:col-2 p-0">
-        <div class="kpi-card p-3 border-round-2xl">
-          <span class="kpi-label block text-xs">Temperatura</span>
-          <div class="kpi-value text-xl md:text-2xl font-bold mt-1">
-            {{ container.currentTemperature.toFixed(1).replace('.', ',') }} °C
+        <div class="kpi-card p-3 border-round-2xl" role="group" :aria-label="t('telemetry.kpi.temperature')">
+          <span class="kpi-label block text-xs">{{ t('telemetry.kpi.temperature') }}</span>
+          <div class="kpi-value text-xl md:text-2xl font-bold mt-1" role="status">
+            {{ formatTemperature(container.currentTemperature) }}
           </div>
-          <span class="kpi-tag text-2xs px-2 py-0 border-round-pill mt-2 inline-block tag-safe font-semibold">
-            • En rango
+          <span
+            class="kpi-tag text-2xs px-2 py-0 border-round-pill mt-2 inline-block font-semibold"
+            :class="thermalState === 'normal' ? 'tag-safe' : 'tag-warn'"
+          >
+            • {{ t(`telemetry.thermal.${thermalState}`) }}
           </span>
         </div>
       </div>
 
-      <!-- 2. Peso -->
       <div class="col-6 sm:col-4 md:col-2 p-0">
-        <div class="kpi-card p-3 border-round-2xl">
-          <span class="kpi-label block text-xs">Peso</span>
+        <div class="kpi-card p-3 border-round-2xl" role="group" :aria-label="t('telemetry.kpi.weight')">
+          <span class="kpi-label block text-xs">{{ t('telemetry.kpi.weight') }}</span>
           <div class="kpi-value text-xl md:text-2xl font-bold mt-1">
-            {{ container.netWeight.toFixed(1).replace('.', ',') }} kg
+            {{ formatKilograms(container.netWeight) }}
           </div>
-          <small class="kpi-sub block text-2xs text-muted mt-2">Tara: {{ container.tareWeight || 10.0 }} kg</small>
+          <small class="kpi-sub block text-2xs text-muted mt-2">{{ t('telemetry.kpi.tare', { value: formatKilograms(container.tareWeight) }) }}</small>
         </div>
       </div>
 
-      <!-- 3. Batería 12V -->
       <div class="col-6 sm:col-4 md:col-2 p-0">
-        <div class="kpi-card p-3 border-round-2xl">
-          <span class="kpi-label block text-xs">Batería 12 V</span>
+        <div class="kpi-card p-3 border-round-2xl" role="group" :aria-label="t('telemetry.kpi.battery')">
+          <span class="kpi-label block text-xs">{{ t('telemetry.kpi.battery') }}</span>
           <div class="kpi-value text-xl md:text-2xl font-bold mt-1">
             {{ container.batteryLevel }} %
           </div>
-          <div class="battery-track mt-2 w-full border-round-pill">
-            <div
-              class="battery-fill border-round-pill"
-              :style="{ width: `${container.batteryLevel}%` }"
-            ></div>
+          <div
+            class="battery-track mt-2 w-full border-round-pill"
+            role="meter"
+            :aria-label="t('telemetry.kpi.battery')"
+            aria-valuemin="0"
+            aria-valuemax="100"
+            :aria-valuenow="container.batteryLevel"
+          >
+            <div class="battery-fill border-round-pill" :style="{ width: `${container.batteryLevel}%` }"></div>
           </div>
         </div>
       </div>
 
-      <!-- 4. Señal -->
       <div class="col-6 sm:col-4 md:col-2 p-0">
-        <div class="kpi-card p-3 border-round-2xl">
-          <span class="kpi-label block text-xs">Señal</span>
+        <div class="kpi-card p-3 border-round-2xl" role="group" :aria-label="t('telemetry.kpi.signal')">
+          <span class="kpi-label block text-xs">{{ t('telemetry.kpi.signal') }}</span>
           <div class="kpi-value text-xl md:text-2xl font-bold mt-1">
-            {{ container.signalQuality || 'Fuerte' }}
+            {{ t(`telemetry.signal.${container.signalQuality}`) }}
           </div>
-          <small class="kpi-sub block text-2xs text-muted mt-2">Red LTE-M</small>
+          <small class="kpi-sub block text-2xs text-muted mt-2">{{ t('telemetry.kpi.network') }}</small>
         </div>
       </div>
 
-      <!-- 5. Tapa -->
       <div class="col-6 sm:col-4 md:col-2 p-0">
-        <div class="kpi-card p-3 border-round-2xl">
-          <span class="kpi-label block text-xs">Tapa</span>
+        <div class="kpi-card p-3 border-round-2xl" role="group" :aria-label="t('telemetry.kpi.lid')">
+          <span class="kpi-label block text-xs">{{ t('telemetry.kpi.lid') }}</span>
           <div class="kpi-value text-xl md:text-2xl font-bold mt-1 capitalize">
-            {{ container.lidStatus === 'closed' ? 'Cerrada' : 'Abierta' }}
+            {{ t(`telemetry.lid.${container.lidStatus}`) }}
           </div>
-          <small class="kpi-sub block text-2xs text-muted mt-2">Cerrojo electromecánico</small>
+          <small class="kpi-sub block text-2xs text-muted mt-2">{{ t('telemetry.kpi.lock') }}</small>
         </div>
       </div>
 
-      <!-- 6. Ubicación -->
       <div class="col-6 sm:col-4 md:col-2 p-0">
-        <div class="kpi-card p-3 border-round-2xl">
-          <span class="kpi-label block text-xs">Ubicación</span>
-          <div class="kpi-value text-xl md:text-2xl font-bold mt-1 text-truncate">
-            {{ container.location ? container.location.split(' ')[0] : 'Km 312' }}
+        <div class="kpi-card p-3 border-round-2xl" role="group" :aria-label="t('telemetry.kpi.location')">
+          <span class="kpi-label block text-xs">{{ t('telemetry.kpi.location') }}</span>
+          <div class="kpi-value text-base md:text-lg font-bold mt-1 text-truncate" :title="container.location">
+            {{ container.location || '—' }}
           </div>
-          <small class="kpi-sub block text-2xs text-muted mt-2 text-truncate">{{ container.location || 'Panamericana Sur' }}</small>
+          <small class="kpi-sub block text-2xs text-muted mt-2 text-truncate">{{ container.currentTransferId || '—' }}</small>
         </div>
       </div>
     </section>
 
-    <!-- MODE B: Stock por peso (MBA-51: 4 cards) -->
-    <section v-else class="kpi-grid grid m-0 gap-3">
-      <!-- 1. Peso Total -->
+    <!-- MODE B: Stock by weight (MBA-51: 4 cards) -->
+    <section v-else class="kpi-grid grid m-0 gap-3" :aria-label="t('telemetry.detail.kpis-label')">
       <div class="col-12 sm:col-6 md:col-3 p-0">
-        <div class="kpi-card p-4 border-round-2xl">
-          <span class="kpi-label block text-xs">Peso total</span>
+        <div class="kpi-card p-4 border-round-2xl" role="group" :aria-label="t('telemetry.stock.total-weight')">
+          <span class="kpi-label block text-xs">{{ t('telemetry.stock.total-weight') }}</span>
           <div class="kpi-value text-2xl md:text-3xl font-bold mt-1">
-            {{ container.netWeight.toFixed(1).replace('.', ',') }} kg
+            {{ formatKilograms(container.netWeight) }}
           </div>
         </div>
       </div>
 
-      <!-- 2. Último Cambio -->
       <div class="col-12 sm:col-6 md:col-3 p-0">
-        <div class="kpi-card p-4 border-round-2xl">
-          <span class="kpi-label block text-xs">Último cambio</span>
+        <div class="kpi-card p-4 border-round-2xl" role="group" :aria-label="t('telemetry.stock.last-change')">
+          <span class="kpi-label block text-xs">{{ t('telemetry.stock.last-change') }}</span>
           <div class="kpi-value text-2xl md:text-3xl font-bold mt-1 text-diff-amber">
-            -0,8 kg
+            {{ lastMovement ? formatWeightDiff(lastMovement.weightDiff) : '—' }}
           </div>
         </div>
       </div>
 
-      <!-- 3. Unidades Estimadas -->
       <div class="col-12 sm:col-6 md:col-3 p-0">
-        <div class="kpi-card p-4 border-round-2xl">
-          <span class="kpi-label block text-xs">Unidades estimadas</span>
+        <div class="kpi-card p-4 border-round-2xl" role="group" :aria-label="t('telemetry.stock.estimated-units')">
+          <span class="kpi-label block text-xs">{{ t('telemetry.stock.estimated-units') }}</span>
           <div class="kpi-value text-2xl md:text-3xl font-bold mt-1 text-main">
-            {{ container.estimatedUnits || 23 }}
+            {{ container.estimatedUnits }}
           </div>
         </div>
       </div>
 
-      <!-- 4. Tapa -->
       <div class="col-12 sm:col-6 md:col-3 p-0">
-        <div class="kpi-card p-4 border-round-2xl">
-          <span class="kpi-label block text-xs">Tapa</span>
+        <div class="kpi-card p-4 border-round-2xl" role="group" :aria-label="t('telemetry.kpi.lid')">
+          <span class="kpi-label block text-xs">{{ t('telemetry.kpi.lid') }}</span>
           <div class="kpi-value text-2xl md:text-3xl font-bold mt-1 capitalize">
-            {{ container.lidStatus === 'closed' ? 'Cerrada' : 'Abierta' }}
+            {{ t(`telemetry.lid.${container.lidStatus}`) }}
           </div>
         </div>
       </div>
@@ -336,24 +375,27 @@ async function saveRules() {
 
     <!-- ================= MAIN TWO PANELS ================= -->
 
-    <!-- MODE A PANELS: Gráfica 6h + Reglas asociadas (MBA-30) -->
+    <!-- MODE A PANELS: recent curve + associated rules (MBA-30) -->
     <div v-if="activeTab === 'telemetry'" class="grid m-0 gap-3">
-      <!-- Left Panel: 6h Continuous Chart -->
       <div class="col-12 lg:col-8 p-0">
-        <div class="content-panel p-4 border-round-2xl h-full flex flex-column justify-content-between">
+        <section class="content-panel p-4 border-round-2xl h-full flex flex-column justify-content-between" :aria-label="t('telemetry.detail.chart-title')">
           <div class="flex justify-content-between align-items-center mb-3">
-            <h3 class="panel-heading text-sm font-bold text-main m-0">Temperatura · 6 h</h3>
-            <span class="tag-safe text-xs font-semibold px-3 py-1 border-round-pill">
-              • En rango
+            <h3 class="panel-heading text-sm font-bold text-main m-0">{{ t('telemetry.detail.chart-title') }}</h3>
+            <span
+              class="text-xs font-semibold px-3 py-1 border-round-pill"
+              :class="thermalState === 'normal' ? 'tag-safe' : 'tag-warn'"
+            >
+              • {{ t(`telemetry.thermal.${thermalState}`) }}
             </span>
           </div>
 
-          <!-- Continuous Line Chart SVG Container -->
           <div class="chart-container relative w-full my-2">
             <svg
               viewBox="0 0 600 180"
               class="w-full h-auto overflow-visible"
               preserveAspectRatio="none"
+              role="img"
+              :aria-label="chartSummary"
             >
               <defs>
                 <linearGradient id="tempAreaGradient" x1="0" y1="0" x2="0" y2="1">
@@ -362,12 +404,12 @@ async function saveRules() {
                 </linearGradient>
               </defs>
 
-              <!-- Threshold Top line: 8 °C (dashed salmon) -->
+              <!-- Upper threshold -->
               <line
                 :x1="paddingX"
-                :y1="getY(8.0)"
+                :y1="getY(thresholds.maxCelsius)"
                 :x2="svgWidth - paddingX"
-                :y2="getY(8.0)"
+                :y2="getY(thresholds.maxCelsius)"
                 stroke="#E05A46"
                 stroke-dasharray="4 4"
                 stroke-width="1.5"
@@ -375,43 +417,38 @@ async function saveRules() {
               />
               <text
                 :x="paddingX - 10"
-                :y="getY(8.0) + 4"
+                :y="getY(thresholds.maxCelsius) + 4"
                 text-anchor="end"
                 font-size="11"
                 fill="#5A706A"
                 font-weight="500"
               >
-                8 °C
+                {{ formatTemperature(thresholds.maxCelsius, 0) }}
               </text>
 
-              <!-- Threshold Bottom line: 2 °C (subtle dashed) -->
+              <!-- Lower threshold -->
               <line
                 :x1="paddingX"
-                :y1="getY(2.0)"
+                :y1="getY(thresholds.minCelsius)"
                 :x2="svgWidth - paddingX"
-                :y2="getY(2.0)"
+                :y2="getY(thresholds.minCelsius)"
                 stroke="#CBD5E1"
                 stroke-dasharray="3 3"
                 stroke-width="1"
               />
               <text
                 :x="paddingX - 10"
-                :y="getY(2.0) + 4"
+                :y="getY(thresholds.minCelsius) + 4"
                 text-anchor="end"
                 font-size="11"
                 fill="#5A706A"
                 font-weight="500"
               >
-                2 °C
+                {{ formatTemperature(thresholds.minCelsius, 0) }}
               </text>
 
-              <!-- Area Fill -->
-              <path
-                :d="svgAreaPath"
-                fill="url(#tempAreaGradient)"
-              />
+              <path :d="svgAreaPath" fill="url(#tempAreaGradient)" />
 
-              <!-- Continuous Smooth Bezier Line -->
               <path
                 :d="svgLinePath"
                 fill="none"
@@ -421,8 +458,7 @@ async function saveRules() {
                 stroke-linejoin="round"
               />
 
-              <!-- Interactive Points -->
-              <g v-for="(point, idx) in chartPoints" :key="point.time">
+              <g v-for="(point, idx) in chartPoints" :key="`${point.time}-${idx}`">
                 <circle
                   :cx="getX(idx, chartPoints.length)"
                   :cy="getY(point.temp)"
@@ -434,7 +470,6 @@ async function saveRules() {
                   @mouseenter="hoveredPoint = point"
                   @mouseleave="hoveredPoint = null"
                 />
-                <!-- Time labels along bottom -->
                 <text
                   :x="getX(idx, chartPoints.length)"
                   :y="svgHeight - 6"
@@ -447,80 +482,74 @@ async function saveRules() {
               </g>
             </svg>
 
-            <!-- Hover tooltip -->
-            <div
-              v-if="hoveredPoint"
-              class="chart-tooltip p-2 border-round-lg shadow-2 text-xs"
-            >
-              <strong>{{ hoveredPoint.temp }} °C</strong>
-              <span class="text-muted block">{{ hoveredPoint.time }} hrs</span>
+            <div v-if="hoveredPoint" class="chart-tooltip p-2 border-round-lg shadow-2 text-xs" role="tooltip">
+              <strong>{{ formatTemperature(hoveredPoint.temp) }}</strong>
+              <span class="text-muted block">{{ hoveredPoint.time }}</span>
             </div>
           </div>
-        </div>
+        </section>
       </div>
 
       <!-- Right Panel: Associated Rules (MBA-30) -->
       <div class="col-12 lg:col p-0">
-        <div class="content-panel p-4 border-round-2xl h-full flex flex-column justify-content-between">
-          <h3 class="panel-heading text-sm font-bold text-main m-0 mb-4">Reglas asociadas</h3>
+        <section class="content-panel p-4 border-round-2xl h-full flex flex-column justify-content-between" :aria-label="t('telemetry.rules.title')">
+          <h3 class="panel-heading text-sm font-bold text-main m-0 mb-4">{{ t('telemetry.rules.title') }}</h3>
 
-          <div class="rules-list flex flex-column gap-3">
-            <!-- Row 1: Rango -->
+          <dl class="rules-list flex flex-column gap-3 m-0">
             <div class="rule-row flex justify-content-between align-items-center pb-3 border-bottom-subtle">
-              <span class="rule-label text-xs text-muted">Rango</span>
-              <div class="flex align-items-center gap-3">
+              <dt class="rule-label text-xs text-muted">{{ t('telemetry.rules.range') }}</dt>
+              <dd class="flex align-items-center gap-3 m-0">
                 <span class="rule-value text-sm font-bold text-main">
-                  {{ container.targetMinTemperature?.toFixed(1).replace('.', ',') || '2,0' }} – {{ container.targetMaxTemperature?.toFixed(1).replace('.', ',') || '8,0' }} °C
+                  {{ formatNumber(thresholds.minCelsius) }} – {{ formatTemperature(thresholds.maxCelsius) }}
                 </span>
                 <pv-button
-                  label="Editar"
+                  :label="t('telemetry.rules.edit')"
                   class="btn-edit-rule px-3 py-1 text-xs border-round-pill"
                   text
                   @click="openEditRules"
                 />
-              </div>
+              </dd>
             </div>
 
-            <!-- Row 2: Aviso -->
             <div class="rule-row flex justify-content-between align-items-center pb-3 border-bottom-subtle">
-              <span class="rule-label text-xs text-muted">Aviso</span>
-              <span class="rule-value text-sm font-bold text-main">7,5 °C</span>
+              <dt class="rule-label text-xs text-muted">{{ t('telemetry.rules.warning') }}</dt>
+              <dd class="rule-value text-sm font-bold text-main m-0">{{ formatTemperature(thresholds.warningCelsius) }}</dd>
             </div>
 
-            <!-- Row 3: Batería -->
             <div class="rule-row flex justify-content-between align-items-center pb-3">
-              <span class="rule-label text-xs text-muted">Batería</span>
-              <span class="rule-value text-sm font-bold text-main">Aviso al 20 %</span>
+              <dt class="rule-label text-xs text-muted">{{ t('telemetry.rules.battery') }}</dt>
+              <dd class="rule-value text-sm font-bold text-main m-0">{{ t('telemetry.rules.battery-value', { value: container.batteryWarningPercentage }) }}</dd>
             </div>
-          </div>
+          </dl>
 
           <div class="mt-4 p-3 bg-subtle border-round-xl">
             <span class="text-2xs text-muted block">
-              <i class="pi pi-info-circle mr-1 text-teal"></i>
-              Las alertas se despachan automáticamente al centro de control ante variación térmica continua > 3 min.
+              <i class="pi pi-info-circle mr-1 text-teal" aria-hidden="true"></i>
+              {{ t('telemetry.rules.note', { seconds: thresholds.excursionToleranceSeconds }) }}
             </span>
           </div>
-        </div>
+        </section>
       </div>
     </div>
 
-    <!-- MODE B PANELS: Movimientos de insumos + Cálculo de stock (MBA-51) -->
+    <!-- MODE B PANELS: payload movements + stock calculation (MBA-51) -->
     <div v-else class="grid m-0 gap-3">
-      <!-- Left Panel: Movimientos de insumos -->
       <div class="col-12 lg:col-7 p-0">
-        <div class="content-panel p-4 border-round-2xl h-full flex flex-column justify-content-between">
+        <section class="content-panel p-4 border-round-2xl h-full flex flex-column justify-content-between" :aria-label="t('telemetry.stock.movements')">
           <div>
             <div class="flex justify-content-between align-items-center mb-3">
-              <h3 class="panel-heading text-sm font-bold text-main m-0">Movimientos de insumos</h3>
+              <h3 class="panel-heading text-sm font-bold text-main m-0">{{ t('telemetry.stock.movements') }}</h3>
               <pv-button
-                label="+ Registrar"
+                :label="t('telemetry.stock.register')"
                 class="btn-withdraw px-3 py-1 text-xs border-round-pill"
                 @click="emit('open-withdrawal-modal', container)"
               />
             </div>
 
-            <div class="movements-list flex flex-column gap-2">
-              <div
+            <p v-if="!movements.length" class="text-xs text-muted m-0" role="status">{{ t('telemetry.stock.no-movements') }}</p>
+
+            <ul v-else class="movements-list flex flex-column gap-2 list-none p-0 m-0">
+              <li
                 v-for="item in movements"
                 :key="item.id"
                 class="movement-row p-3 border-round-xl flex justify-content-between align-items-center"
@@ -528,60 +557,59 @@ async function saveRules() {
                 <div class="flex align-items-center gap-3">
                   <span class="move-time text-xs font-bold text-main">{{ item.time }}</span>
                   <div>
-                    <span class="move-desc text-xs text-main font-semibold">{{ item.description }}</span>
-                    <small class="text-2xs text-muted block">{{ item.responsible || 'Marta Rojas' }}</small>
+                    <span class="move-desc text-xs text-main font-semibold">{{ movementDescription(item) }}</span>
+                    <small class="text-2xs text-muted block">{{ item.responsible || '—' }}</small>
                   </div>
                 </div>
 
                 <span
                   class="move-chip text-xs font-bold px-3 py-1 border-round-pill"
                   :class="{
-                    'chip-withdrawal': item.weightDiff?.includes('-') || item.type === 'withdrawal',
-                    'chip-deposit': item.weightDiff?.includes('+') || item.type === 'deposit',
+                    'chip-withdrawal': item.type === 'withdrawal',
+                    'chip-deposit': item.type === 'deposit',
                     'chip-initial': item.type === 'initial'
                   }"
                 >
-                  • {{ item.weightDiff }}
+                  • {{ formatWeightDiff(item.weightDiff) }}
                 </span>
-              </div>
-            </div>
+              </li>
+            </ul>
           </div>
-        </div>
+        </section>
       </div>
 
-      <!-- Right Panel: Cálculo de stock -->
       <div class="col-12 lg:col p-0">
-        <div class="content-panel p-4 border-round-2xl h-full flex flex-column justify-content-between">
-          <h3 class="panel-heading text-sm font-bold text-main m-0 mb-3">Cálculo de stock</h3>
+        <section class="content-panel p-4 border-round-2xl h-full flex flex-column justify-content-between" :aria-label="t('telemetry.stock.calculation')">
+          <h3 class="panel-heading text-sm font-bold text-main m-0 mb-3">{{ t('telemetry.stock.calculation') }}</h3>
 
           <div class="stock-calc-box p-4 border-round-2xl">
-            <div class="flex flex-column gap-3">
+            <dl class="flex flex-column gap-3 m-0">
               <div>
-                <span class="text-xs text-muted block">Peso por unidad:</span>
-                <strong class="text-sm text-main">{{ container.unitWeight || 0.4 }} kg</strong>
+                <dt class="text-xs text-muted block">{{ t('telemetry.stock.unit-weight') }}</dt>
+                <dd class="text-sm text-main font-bold m-0">{{ formatKilograms(container.unitWeight) }}</dd>
               </div>
 
               <div>
-                <span class="text-xs text-muted block">Diferencia registrada:</span>
-                <strong class="text-sm text-diff-amber">-0,8 kg</strong>
+                <dt class="text-xs text-muted block">{{ t('telemetry.stock.recorded-diff') }}</dt>
+                <dd class="text-sm text-diff-amber font-bold m-0">{{ lastMovement ? formatWeightDiff(lastMovement.weightDiff) : '—' }}</dd>
               </div>
 
               <div class="pt-2 border-top-subtle">
-                <span class="text-xs text-muted block">Stock estimado:</span>
-                <div class="text-lg md:text-xl font-bold text-main mt-1">
-                  {{ container.estimatedUnits || 23 }} unidades
-                </div>
+                <dt class="text-xs text-muted block">{{ t('telemetry.stock.estimated-stock') }}</dt>
+                <dd class="text-lg md:text-xl font-bold text-main mt-1 m-0">
+                  {{ t('telemetry.stock.units', { count: container.estimatedUnits }, container.estimatedUnits) }}
+                </dd>
               </div>
-            </div>
+            </dl>
           </div>
 
           <div class="mt-4 p-3 bg-subtle border-round-xl">
             <span class="text-2xs text-muted block">
-              <i class="pi pi-check text-teal mr-1"></i>
-              Sensor HX711 calibrado con celda de carga de precisión médica. Tolerancia ±2 viales.
+              <i class="pi pi-check text-teal mr-1" aria-hidden="true"></i>
+              {{ t('telemetry.stock.sensor-note') }}
             </span>
           </div>
-        </div>
+        </section>
       </div>
     </div>
 
@@ -589,14 +617,15 @@ async function saveRules() {
     <pv-dialog
       v-model:visible="isEditingRules"
       modal
-      header="Editar Reglas de Conservación"
+      :header="t('telemetry.rules.edit-title')"
       :style="{ width: '420px', maxWidth: '95vw' }"
     >
       <div class="flex flex-column gap-3 py-2">
         <div>
-          <label class="block text-xs font-bold text-muted mb-1">Temperatura Mínima (°C)</label>
+          <label for="rule-min" class="block text-xs font-bold text-muted mb-1">{{ t('telemetry.rules.min') }}</label>
           <pv-input-number
             v-model="editMinTemp"
+            input-id="rule-min"
             :min-fraction-digits="1"
             :max-fraction-digits="1"
             :min="0"
@@ -605,9 +634,10 @@ async function saveRules() {
           />
         </div>
         <div>
-          <label class="block text-xs font-bold text-muted mb-1">Temperatura Máxima (°C)</label>
+          <label for="rule-max" class="block text-xs font-bold text-muted mb-1">{{ t('telemetry.rules.max') }}</label>
           <pv-input-number
             v-model="editMaxTemp"
+            input-id="rule-max"
             :min-fraction-digits="1"
             :max-fraction-digits="1"
             :min="0"
@@ -616,18 +646,31 @@ async function saveRules() {
           />
         </div>
         <div>
-          <label class="block text-xs font-bold text-muted mb-1">Umbral Preventivo de Alerta (°C)</label>
+          <label for="rule-warning" class="block text-xs font-bold text-muted mb-1">{{ t('telemetry.rules.warning-input') }}</label>
           <pv-input-number
             v-model="editWarningTemp"
+            input-id="rule-warning"
             :min-fraction-digits="1"
             :max-fraction-digits="1"
             class="w-full"
           />
         </div>
+        <div>
+          <label for="rule-battery" class="block text-xs font-bold text-muted mb-1">{{ t('telemetry.rules.battery-input') }}</label>
+          <pv-input-number
+            v-model="editBatteryWarning"
+            input-id="rule-battery"
+            :min="5"
+            :max="90"
+            suffix=" %"
+            class="w-full"
+          />
+        </div>
+        <p v-if="rulesError" class="text-xs m-0 text-red-600" role="alert">{{ rulesError }}</p>
       </div>
       <template #footer>
-        <pv-button label="Cancelar" text @click="isEditingRules = false" />
-        <pv-button label="Guardar Reglas" class="btn-live font-bold" @click="saveRules" />
+        <pv-button :label="t('telemetry.action.cancel')" text @click="isEditingRules = false" />
+        <pv-button :label="t('telemetry.rules.save')" class="btn-live font-bold" @click="saveRules" />
       </template>
     </pv-dialog>
   </div>
@@ -832,5 +875,11 @@ async function saveRules() {
 .stock-calc-box {
   background-color: #FBFBF9;
   border: 1px solid #E8E6DF;
+}
+
+/* Preventive or critical thermal state tag */
+.tag-warn {
+  background: #FDECEA;
+  color: #B4232A;
 }
 </style>

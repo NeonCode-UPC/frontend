@@ -34,9 +34,13 @@ jobs:
         run: npm ci
 
       - name: Build project
-        run: npm run build
+        run: |
+          if [ -n "$GH_VITE_API_URL" ]; then
+            export VITE_API_URL="$GH_VITE_API_URL"
+          fi
+          npm run build
         env:
-          VITE_API_URL: ${{ secrets.VITE_API_URL || vars.VITE_API_URL || '' }}
+          GH_VITE_API_URL: ${{ secrets.VITE_API_URL || vars.VITE_API_URL || '' }}
 
       - name: Support SPA routing on reload (copy index.html to 404.html)
         run: cp dist/index.html dist/404.html

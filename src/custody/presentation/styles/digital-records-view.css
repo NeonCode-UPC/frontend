@@ -1,163 +1,53 @@
-.manifest-cards-layout {
-  display: grid;
-  grid-template-columns: minmax(0, 1.4fr) minmax(320px, 1fr);
-  gap: 1.25rem;
-  align-items: start;
-  width: 100%;
+.manifest-list-page { width: 100%; }
+.manifest-list { overflow: hidden; border: 1px solid #e9e8e1; border-radius: 13px; background: #fff; box-shadow: 0 2px 8px rgb(16 49 47 / 3%); }
+.manifest-list-row { display: grid; grid-template-columns: minmax(180px,1fr) minmax(80px,.35fr) minmax(130px,.55fr) auto; align-items: center; gap: 14px; min-height: 59px; padding: 10px 14px; border-bottom: 1px solid #f0efeb; cursor: pointer; }
+.manifest-list-row:last-child { border-bottom: 0; }
+.manifest-list-row:hover { background: #fafbf8; }
+.manifest-list-id strong,.manifest-list-id small { display: block; }
+.manifest-list-id strong { color: #2e514b; font-size: 11px; }
+.manifest-list-id small,.manifest-date { margin-top: 4px; color: #84958f; font-size: 9px; }
+.manifest-status { display: inline-flex; align-items: center; gap: 5px; width: fit-content; border-radius: 999px; background: #e6f4eb; color: #37866d; padding: 4px 7px; font-size: 8px; font-weight: 700; white-space: nowrap; }
+.manifest-status i { width: 5px; height: 5px; border-radius: 50%; background: #36a578; }
+.manifest-loading,.manifest-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 9px; min-height: 160px; color: #83948e; font-size: 10px; }
+.manifest-empty > i { color: #5f9f8a; font-size: 20px; }
+.manifest-empty strong { color: #31554f; font-size: 12px; }
+.manifest-empty span { max-width: 280px; text-align: center; line-height: 1.5; }
+.manifest-detail-layout { display: grid; grid-template-columns: minmax(0,1.25fr) minmax(260px,.85fr); gap: 12px; align-items: start; }
+.manifest-document-card,.manifest-seal-card { overflow: hidden; border: 1px solid #e9e8e1; border-radius: 12px; background: #fff; box-shadow: 0 2px 7px rgb(16 49 47 / 3%); }
+.document-heading { padding: 15px 16px 12px; border-bottom: 1px solid #f0efeb; }
+.eyebrow { display: block; margin-bottom: 5px; color: #879791; font-size: 8px; font-weight: 800; letter-spacing: .07em; }
+.document-heading h2,.manifest-seal-card h2 { margin: 0; color: #244944; font-size: 15px; letter-spacing: -.02em; }
+.document-heading p { margin: 5px 0 0; color: #7e928b; font-size: 9px; }
+.document-data { display: grid; gap: 0; padding: 4px 16px; }
+.document-data > div { display: flex; justify-content: space-between; gap: 14px; padding: 10px 0; border-bottom: 1px solid #f1f0eb; font-size: 9px; }
+.document-data > div:last-child { border-bottom: 0; }
+.document-data strong { color: #385c55; }
+.document-data span { color: #728880; text-align: right; }
+.manifest-document-footer { display: flex; align-items: center; gap: 7px; padding: 10px 16px; background: #f8faf7; color: #789089; font-size: 8px; }
+.manifest-document-footer i { color: #188877; }
+.manifest-seal-card { padding: 15px 16px; }
+.manifest-seal-card h2 { margin-bottom: 12px; }
+.seal-state { position: relative; display: grid; grid-template-columns: 1fr auto; gap: 5px 10px; align-items: center; padding: 10px 0; border-top: 1px solid #f0efeb; border-bottom: 1px solid #f0efeb; color: #658077; font-size: 9px; }
+.seal-state .manifest-status { grid-column: 2; grid-row: 1 / span 2; }
+.seal-state small { color: #85958f; font-size: 8px; }
+.seal-hash { display: flex; justify-content: space-between; gap: 10px; padding: 11px 0; color: #688078; font-size: 9px; }
+.seal-hash code { max-width: 68%; overflow-wrap: anywhere; color: #7c8d87; font-size: 8px; text-align: right; }
+.immutable-note { display: flex; align-items: center; gap: 6px; margin: 5px 0 0; color: #728880; font-size: 8px; }
+.immutable-note i { color: #108477; }
+.manifest-primary,.manifest-secondary { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 31px; border-radius: 999px; padding: 7px 12px; font: inherit; font-size: 9px; font-weight: 800; white-space: nowrap; cursor: pointer; }
+.manifest-primary { border: 0; background: linear-gradient(180deg,#178d7e,#087568); color: #fff; box-shadow: 0 3px 7px rgb(15 122 112 / 17%); }
+.manifest-secondary { border: 1px solid #e1e7e2; background: #fff; color: #55716a; }
+.manifest-error { margin: 0 0 12px; padding: 9px 12px; border: 1px solid #f1c6bb; border-radius: 8px; background: #fff4f0; color: #a84a3a; font-size: 10px; }
+@media (max-width: 740px) {
+  .manifest-detail-layout { grid-template-columns: 1fr; }
+  .manifest-list-row { grid-template-columns: minmax(0,1fr) auto; gap: 8px; }
+  .manifest-list-row > .manifest-status { grid-column: 2; grid-row: 1; }
+  .manifest-list-row > .manifest-date { grid-column: 1; }
+  .manifest-list-row > .manifest-secondary { grid-column: 2; grid-row: 2; }
 }
-
-/* Tarjeta 1: Acta de traslado */
-.doc-card {
-  background: var(--bg-card, #FFFFFF);
-  border: 1px solid var(--border-subtle, #E8E6DF);
-  border-radius: 16px;
-  padding: 1.5rem;
-  box-shadow: 0 1px 3px rgba(16, 49, 47, 0.04);
-}
-
-.doc-title {
-  margin: 0 0 1rem 0;
-  font-size: 1rem;
-  font-weight: 700;
-  color: var(--text-main, #10312F);
-  letter-spacing: -0.01em;
-}
-
-.doc-rows {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-}
-
-.doc-row {
-  margin: 0;
-  font-size: 0.875rem;
-  line-height: 1.5;
-  display: flex;
-  align-items: baseline;
-  gap: 0.4rem;
-}
-
-.row-label {
-  color: var(--text-main, #10312F);
-  font-weight: 700;
-  flex-shrink: 0;
-}
-
-.row-value {
-  color: var(--text-secondary, #5A706A);
-}
-
-/* Tarjeta 2: Sellado */
-.seal-card {
-  background: var(--bg-card, #FFFFFF);
-  border: 1px solid var(--border-subtle, #E8E6DF);
-  border-radius: 16px;
-  padding: 1.5rem;
-  box-shadow: 0 1px 3px rgba(16, 49, 47, 0.04);
-}
-
-.seal-title {
-  margin: 0 0 1.25rem 0;
-  font-size: 1rem;
-  font-weight: 700;
-  color: var(--text-main, #10312F);
-  letter-spacing: -0.01em;
-}
-
-.seal-rows {
-  display: flex;
-  flex-direction: column;
-}
-
-.seal-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem;
-  min-height: 44px;
-}
-
-.seal-row.border-bottom-subtle {
-  border-bottom: 1px solid #F0EFEA;
-  padding-bottom: 0.85rem;
-  margin-bottom: 0.85rem;
-}
-
-.seal-label {
-  font-size: 0.875rem;
-  font-weight: 700;
-  color: var(--text-main, #10312F);
-}
-
-.seal-desc {
-  font-size: 0.875rem;
-  color: var(--text-secondary, #5A706A);
-  margin-left: auto;
-  margin-right: 0.75rem;
-}
-
-.seal-badge-valid {
-  background-color: #EAF7EE;
-  color: #107569;
-  border: 1px solid #B9DDA0;
-  border-radius: 9999px;
-  padding: 0.2rem 0.65rem;
-  font-size: 0.75rem;
-  font-weight: 600;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  white-space: nowrap;
-}
-
-.badge-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background-color: #107569;
-}
-
-.hash-text {
-  font-family: monospace;
-  font-size: 0.875rem;
-  color: var(--text-secondary, #5A706A);
-  letter-spacing: 0.02em;
-}
-
-/* Botón Descargar PDF */
-.btn-download-pdf {
-  background-color: var(--color-brand-teal, #0F7A70) !important;
-  border-color: var(--color-brand-teal, #0F7A70) !important;
-  color: #FFFFFF !important;
-  padding: 0.5rem 1.25rem !important;
-}
-
-.btn-download-pdf:hover {
-  background-color: var(--color-brand-teal-hover, #0B6258) !important;
-  border-color: var(--color-brand-teal-hover, #0B6258) !important;
-}
-
-.loading-state {
-  display: flex;
-  justify-content: center;
-  width: 100%;
-}
-
-@media (max-width: 991px) {
-  .manifest-cards-layout {
-    grid-template-columns: 1fr;
-    gap: 1rem;
-  }
-}
-
-@media print {
-  .manifest-cards-layout {
-    grid-template-columns: 1.4fr 1fr;
-  }
-  .doc-card,
-  .seal-card {
-    box-shadow: none;
-    border: 1px solid #CBD5E1;
-  }
+@media (max-width: 480px) {
+  .document-heading,.manifest-seal-card { padding-left: 13px; padding-right: 13px; }
+  .document-data { padding: 4px 13px; }
+  .document-data > div { gap: 8px; }
+  .manifest-primary,.manifest-secondary { padding: 7px 9px; font-size: 8px; }
 }

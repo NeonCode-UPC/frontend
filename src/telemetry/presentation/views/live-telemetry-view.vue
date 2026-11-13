@@ -1,7 +1,11 @@
 <script setup>
 import { computed, onMounted, ref, watch } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
+import { useI18n } from 'vue-i18n';
 import { useToast } from 'primevue/usetoast';
 import { useTelemetryStore } from '../../application/telemetry.store.js';
+import { TelemetryLog } from '../../domain/telemetry-log.entity.js';
+import { useTelemetryFormat } from '../composables/use-telemetry-format.js';
 
 // Subcomponents matching Figma designs
 import LiveGaugeMonitor from '../components/live-gauge-monitor.vue';
@@ -10,444 +14,270 @@ import TelemetryHistoryTable from '../components/telemetry-history-table.vue';
 import OfflineStateBanner from '../components/offline-state-banner.vue';
 
 const store = useTelemetryStore();
+const route = useRoute();
+const router = useRouter();
 const toast = useToast();
+const { t } = useI18n();
+const { formatTemperature } = useTelemetryFormat();
 
 // Active Figma screen view mode: 'live' (MBA-49) | 'excursion' (MBA-50) | 'history' (MBA-53) | 'offline' (MBA-54)
 const activeViewMode = ref('live');
 
 // Active container selection
-const selectedContainerId = ref('SB-0182');
+const selectedContainerId = ref(null);
 
-// Simulation states
+// Excursion simulation (demo without hardware) and acknowledgement state
 const isSimulatedExcursion = ref(false);
-const isSimulatedOffline = ref(false);
+const simulatedAt = ref(null);
+const isAcknowledged = ref(false);
 
-// Dialog visibility
+// Acknowledge dialog
 const showAcknowledgeDialog = ref(false);
-const showCabinDialog = ref(false);
-const showIncidentDialog = ref(false);
-const showTransferDialog = ref(false);
 const acknowledgeNote = ref('');
 const isAcknowledging = ref(false);
 
-// Initialize data from store
 onMounted(async () => {
   await store.fetchContainers();
-  await store.fetchTelemetryLogs('SB-0182');
+  const queryMatch = route.query.container ? store.findContainer(route.query.container) : null;
+  selectedContainerId.value = queryMatch?.id ?? store.selectedContainer?.id ?? store.containers[0]?.id ?? null;
 });
 
-// Current container data
+const baseContainer = computed(() => store.findContainer(selectedContainerId.value) || null);
+
+// Current container, with a simulated reading above the upper threshold when the simulation is on
 const currentContainer = computed(() => {
-  const target = store.containers.find(c => c.id === selectedContainerId.value);
-  if (target) {
-    if (isSimulatedExcursion.value && selectedContainerId.value === 'SB-0182') {
-      return {
-        ...target,
-        currentTemperature: 9.2,
-        status: 'critical'
-      };
-    }
-    if (isSimulatedOffline.value && selectedContainerId.value === 'SB-0182') {
-      return {
-        ...target,
-        status: 'offline',
-        signalQuality: 'Sin señal'
-      };
-    }
-    return target;
-  }
-  return {
-    id: 'SB-0182',
-    serialNumber: 'MAC-7C9EBD0182',
-    currentTemperature: isSimulatedExcursion.value ? 9.2 : 4.2,
-    batteryLevel: 82,
-    lidStatus: 'closed',
-    netWeight: 18.4,
-    status: isSimulatedExcursion.value ? 'critical' : 'online'
-  };
+  const target = baseContainer.value;
+  if (!target) return null;
+  if (!isSimulatedExcursion.value) return target;
+  return target.withTemperature(Number((target.thermalThresholds.maxCelsius + 1.2).toFixed(1)));
 });
+
+const offlineContainer = computed(() => store.containers.find(c => c.status === 'offline') || null);
+
+const excursionStartedAt = computed(() => {
+  if (isSimulatedExcursion.value) return simulatedAt.value;
+  const firstOut = store.telemetryLogs.find(log => currentContainer.value?.ownsTelemetryLog(log) && log.isThermalExcursion);
+  return firstOut?.timestampUtc || null;
+});
+
+const viewModes = computed(() => [
+  { value: 'live', icon: 'pi pi-compass', label: t('telemetry.live.mode-live') },
+  { value: 'excursion', icon: 'pi pi-exclamation-triangle', label: t('telemetry.live.mode-excursion') },
+  { value: 'history', icon: 'pi pi-history', label: t('telemetry.live.mode-history') },
+  { value: 'offline', icon: 'pi pi-wifi', label: t('telemetry.live.mode-connection') }
+]);
 
 // React to container change
 watch(selectedContainerId, async (newId) => {
+  if (newId === null || newId === undefined || newId === '') return;
+  isSimulatedExcursion.value = false;
+  isAcknowledged.value = false;
   await store.fetchTelemetryLogs(newId);
-  const cont = store.containers.find(c => c.id === newId);
+  const cont = store.findContainer(newId);
   if (cont?.status === 'offline') {
     activeViewMode.value = 'offline';
-  } else if (cont?.status === 'warning') {
+  } else if (cont?.thermalState === 'critical') {
     activeViewMode.value = 'excursion';
   }
 });
 
-// Toggle simulated excursion mode
 function toggleExcursionSimulation() {
+  if (!baseContainer.value) return;
   isSimulatedExcursion.value = !isSimulatedExcursion.value;
+  isAcknowledged.value = false;
   if (isSimulatedExcursion.value) {
+    simulatedAt.value = TelemetryLog.currentTimestamp();
     activeViewMode.value = 'excursion';
     toast.add({
       severity: 'error',
-      summary: 'Alerta Crítica: Excursión Térmica',
-      detail: 'SB-0182 alcanzó 9.2 °C (fuera del rango seguro 2-8 °C).',
+      summary: t('telemetry.toast.excursion-summary'),
+      detail: t('telemetry.toast.excursion-detail', {
+        id: currentContainer.value.displayCode,
+        temp: formatTemperature(currentContainer.value.currentTemperature)
+      }),
       life: 5000
     });
   } else {
     activeViewMode.value = 'live';
     toast.add({
       severity: 'success',
-      summary: 'Temperatura Estabilizada',
-      detail: 'SB-0182 retornó a 4.2 °C dentro del rango permitido.',
+      summary: t('telemetry.toast.stabilized-summary'),
+      detail: t('telemetry.toast.stabilized-detail', {
+        id: baseContainer.value.displayCode,
+        temp: formatTemperature(baseContainer.value.currentTemperature)
+      }),
       life: 3500
     });
   }
 }
 
-// Action handlers
-function handleAcknowledgeAlert() {
-  showAcknowledgeDialog.value = true;
-}
-
-async function confirmAcknowledge() {
+function confirmAcknowledge() {
   isAcknowledging.value = true;
   setTimeout(() => {
     isAcknowledging.value = false;
+    isAcknowledged.value = true;
     showAcknowledgeDialog.value = false;
-    acknowledgeNote.value = '';
     toast.add({
       severity: 'success',
-      summary: 'Alerta Reconocida',
-      detail: 'Protocolo de contingencia activado por Marta Rojas. Notificación enviada a cabina.',
+      summary: t('telemetry.toast.acknowledged-summary'),
+      detail: acknowledgeNote.value.trim() || t('telemetry.toast.acknowledged-detail'),
       life: 4000
     });
-  }, 700);
-}
-
-function handleContactCabin() {
-  showCabinDialog.value = true;
-}
-
-function handleViewIncident() {
-  showIncidentDialog.value = true;
-}
-
-function handleViewTransfer() {
-  showTransferDialog.value = true;
+    acknowledgeNote.value = '';
+  }, 500);
 }
 
 function handleRetryConnection() {
   toast.add({
     severity: 'info',
-    summary: 'Sondeando Gateway IoT...',
-    detail: 'Enviando comando ping a SB-0165 a través de red LoRaWAN / 4G.',
+    summary: t('telemetry.toast.retry-summary'),
+    detail: t('telemetry.toast.retry-detail', { id: offlineContainer.value?.displayCode || offlineContainer.value?.id }),
     life: 3000
   });
-
-  setTimeout(() => {
-    toast.add({
-      severity: 'warn',
-      summary: 'Sin respuesta telemétrica',
-      detail: 'El SmartBox aún se encuentra en zona de baja cobertura (Cañete). Reintentando en 30 s.',
-      life: 4500
-    });
-  }, 2000);
+  store.fetchContainers();
 }
 </script>
 
 <template>
   <div class="live-telemetry-view flex flex-column gap-3">
-    <!-- View Switcher & Simulation Controller Bar -->
+    <!-- View Switcher, container selector & simulation -->
     <div class="view-control-toolbar screen-card border-round-xl p-2 px-3 flex flex-column sm:flex-row align-items-center justify-content-between gap-3">
-      <!-- Mode Tabs (Direct access to Figma designs) -->
-      <div class="mode-tabs-container flex align-items-center gap-1 overflow-x-auto w-full sm:w-auto">
+      <div class="mode-tabs-container flex align-items-center gap-1 overflow-x-auto w-full sm:w-auto" role="tablist" :aria-label="t('telemetry.live.modes-label')">
         <button
+          v-for="mode in viewModes"
+          :key="mode.value"
           type="button"
+          role="tab"
+          :aria-selected="activeViewMode === mode.value"
           class="mode-tab-btn"
-          :class="{ active: activeViewMode === 'live' }"
-          @click="activeViewMode = 'live'"
+          :class="{ active: activeViewMode === mode.value, 'has-danger': mode.value === 'excursion' && isSimulatedExcursion }"
+          @click="activeViewMode = mode.value"
         >
-          <i class="pi pi-compass text-xs"></i>
-          <span>En vivo (TR-0417)</span>
-        </button>
-
-        <button
-          type="button"
-          class="mode-tab-btn"
-          :class="{ active: activeViewMode === 'excursion', 'has-danger': isSimulatedExcursion }"
-          @click="activeViewMode = 'excursion'"
-        >
-          <i class="pi pi-exclamation-triangle text-xs text-red-500"></i>
-          <span>Excursión térmica</span>
-        </button>
-
-        <button
-          type="button"
-          class="mode-tab-btn"
-          :class="{ active: activeViewMode === 'history' }"
-          @click="activeViewMode = 'history'"
-        >
-          <i class="pi pi-history text-xs"></i>
-          <span>Historial 12h / 24h</span>
-        </button>
-
-        <button
-          type="button"
-          class="mode-tab-btn"
-          :class="{ active: activeViewMode === 'offline' }"
-          @click="activeViewMode = 'offline'"
-        >
-          <i class="pi pi-wifi text-xs"></i>
-          <span>Estados de conexión</span>
+          <i :class="[mode.icon, 'text-xs', mode.value === 'excursion' ? 'text-red-500' : '']" aria-hidden="true"></i>
+          <span>{{ mode.label }}</span>
         </button>
       </div>
 
-      <!-- Quick Simulation Toggle Actions -->
       <div class="simulation-actions flex align-items-center gap-2 w-full sm:w-auto justify-content-end">
+        <label for="live-container-select" class="sr-only">{{ t('telemetry.live.select-container') }}</label>
+        <pv-select
+          v-model="selectedContainerId"
+          input-id="live-container-select"
+          :options="store.containers"
+          option-label="displayCode"
+          option-value="id"
+          :placeholder="t('telemetry.live.select-container')"
+          class="text-xs"
+        />
         <pv-button
           :class="isSimulatedExcursion ? 'sim-btn-active' : 'sim-btn-idle'"
           class="p-button-sm border-round-3xl text-xs py-1 px-3"
+          :disabled="!baseContainer"
+          :aria-pressed="isSimulatedExcursion"
           @click="toggleExcursionSimulation"
         >
-          <i :class="isSimulatedExcursion ? 'pi pi-bell-slash' : 'pi pi-bolt'" class="text-xs mr-1"></i>
-          <span>{{ isSimulatedExcursion ? 'Desactivar alarma' : 'Simular excursión (9.2 °C)' }}</span>
+          <i :class="isSimulatedExcursion ? 'pi pi-bell-slash' : 'pi pi-bolt'" class="text-xs mr-1" aria-hidden="true"></i>
+          <span>{{ isSimulatedExcursion ? t('telemetry.live.stop-simulation') : t('telemetry.live.simulate') }}</span>
         </pv-button>
       </div>
     </div>
 
-    <!-- Active View Component Render -->
-    <div class="view-content-canvas">
-      <!-- MBA-49: Live Gauge Monitor in Route TR-0417 -->
+    <div
+      v-if="!currentContainer"
+      class="screen-card border-round-xl p-4 flex flex-column sm:flex-row sm:align-items-center justify-content-between gap-3 text-xs text-muted"
+      role="status"
+      aria-live="polite"
+    >
+      <span>
+        {{ store.loading ? t('telemetry.catalog.loading') : (store.containers.length === 0 ? t('telemetry.catalog.empty-catalog') : t('telemetry.catalog.empty')) }}
+      </span>
+      <pv-button
+        v-if="!store.loading && store.containers.length === 0"
+        :label="t('telemetry.live.go-to-catalog')"
+        icon="pi pi-plus"
+        class="p-button-sm border-round-pill text-xs font-semibold align-self-start sm:align-self-auto"
+        @click="router.push('/telemetry')"
+      />
+    </div>
+
+    <div v-else class="view-content-canvas">
+      <!-- MBA-49: Live monitor -->
       <live-gauge-monitor
         v-if="activeViewMode === 'live'"
         :container="currentContainer"
-        transfer-id="TR-0417"
-        route-path="Lima → Arequipa"
-        route-origin="Clínica San Borja"
-        route-destination="Hosp. Goyeneche"
-        ambulance-plate="ABQ-742"
-        eta="14:35"
         :logs="store.telemetryLogs"
       />
 
-      <!-- MBA-50: Critical Thermal Excursion Alert View -->
+      <!-- MBA-50: Thermal excursion -->
       <thermal-excursion-alert
         v-else-if="activeViewMode === 'excursion'"
         :container="currentContainer"
-        transfer-id="TR-0417"
-        route-path="TR-0417 · Lima → Arequipa"
-        incident-code="INC-0312"
-        :current-temp="9.2"
-        :baseline-temp="4.2"
-        excursion-start-time="14:35"
-        :elapsed-minutes="8"
-        location="Km 312 · Panamericana Sur"
-        eta="15:20"
-        eta-delay="+45 min"
-        ambulance-plate="ABQ-742"
-        cold-ischemia-elapsed="4 h 05 min"
-        cold-ischemia-limit="límite 6 h"
-        :cold-ischemia-percent="68"
-        :vials-count="24"
-        @acknowledge="handleAcknowledgeAlert"
-        @contact-cabin="handleContactCabin"
-        @view-incident="handleViewIncident"
-        @view-transfer="handleViewTransfer"
+        :logs="store.telemetryLogs"
+        :excursion-started-at="excursionStartedAt"
+        :acknowledged="isAcknowledged"
+        @acknowledge="showAcknowledgeDialog = true"
+        @view-incident="router.push('/alerting')"
+        @view-transfer="router.push('/transport')"
       />
 
-      <!-- MBA-53: Telemetry Time History Table & Chart -->
+      <!-- MBA-53: History -->
       <telemetry-history-table
         v-else-if="activeViewMode === 'history'"
-        :container-id="currentContainer.id || 'SB-0182'"
-        transfer-id="TR-0417"
+        :container="currentContainer"
+        :container-id="currentContainer.displayCode"
+        :transfer-id="currentContainer.currentTransferId || ''"
+        :thresholds="currentContainer.thermalThresholds"
         :logs="store.telemetryLogs"
       />
 
-      <!-- MBA-54: IoT Connection States & No Signal Feedback -->
+      <!-- MBA-54: Connection states -->
       <offline-state-banner
         v-else-if="activeViewMode === 'offline'"
-        :container-id="currentContainer.id || 'SB-0182'"
-        offline-container-id="SB-0165"
-        :last-temp="4.9"
-        last-time="13:34"
-        :last-ping-seconds="3"
+        :container-id="currentContainer.displayCode"
+        :offline-container="offlineContainer"
+        :last-reading-at="currentContainer.lastTelemetryAt"
         mode="gallery"
         @retry="handleRetryConnection"
       />
     </div>
 
-    <!-- Modal 1: Reconocer Alerta Crítica (Mitigación) -->
+    <!-- Acknowledge thermal excursion -->
     <pv-dialog
       v-model:visible="showAcknowledgeDialog"
       modal
-      header="Reconocer Alerta de Excursión Térmica"
+      :header="t('telemetry.acknowledge.title')"
       :style="{ width: 'min(92vw, 480px)' }"
     >
-      <div class="flex flex-column gap-3">
-        <div class="p-3 border-round-xl bg-red-50 border-1 border-red-200 text-xs">
-          <strong class="text-red-700 block mb-1">Incidente INC-0312 · SmartBox SB-0182</strong>
+      <div v-if="currentContainer" class="flex flex-column gap-3">
+        <div class="p-3 border-round-xl bg-red-50 border-1 border-red-200 text-xs" role="alert">
+          <strong class="text-red-700 block mb-1">{{ t('telemetry.acknowledge.box', { id: currentContainer.displayCode }) }}</strong>
           <span class="text-red-600">
-            La temperatura se encuentra en 9.2 °C (umbral máximo 8.0 °C). Al reconocer, confirmas que la tripulación y central médica han sido alertadas.
+            {{ t('telemetry.acknowledge.detail', {
+              temp: formatTemperature(currentContainer.currentTemperature),
+              max: formatTemperature(currentContainer.thermalThresholds.maxCelsius)
+            }) }}
           </span>
         </div>
 
         <div>
-          <label class="block text-xs font-bold text-main mb-1">Acción o Instrucción Médica Inmediata</label>
+          <label for="acknowledge-note" class="block text-xs font-bold text-main mb-1">{{ t('telemetry.acknowledge.note') }}</label>
           <pv-textarea
+            id="acknowledge-note"
             v-model="acknowledgeNote"
             rows="3"
             class="w-full text-xs"
-            placeholder="Ej.: Se instruyó a la cabina revisar conexión del cable vehicular de 12V y mantener sellada la escotilla..."
+            :placeholder="t('telemetry.acknowledge.placeholder')"
           />
         </div>
       </div>
 
       <template #footer>
+        <pv-button :label="t('telemetry.action.cancel')" severity="secondary" text @click="showAcknowledgeDialog = false" />
         <pv-button
-          label="Cancelar"
-          severity="secondary"
-          text
-          @click="showAcknowledgeDialog = false"
-        />
-        <pv-button
-          label="Confirmar Acuse de Recibo"
+          :label="t('telemetry.acknowledge.confirm')"
           class="btn-confirm-ack"
           :loading="isAcknowledging"
           @click="confirmAcknowledge"
-        />
-      </template>
-    </pv-dialog>
-
-    <!-- Modal 2: Contactar Cabina de Ambulancia -->
-    <pv-dialog
-      v-model:visible="showCabinDialog"
-      modal
-      header="Comunicación Directa con Cabina"
-      :style="{ width: 'min(92vw, 460px)' }"
-    >
-      <div class="flex flex-column gap-3 text-xs">
-        <div class="screen-card p-3 border-round-xl flex align-items-center justify-content-between">
-          <div>
-            <strong class="text-main block">Ambulancia Tipo III</strong>
-            <span class="text-muted">Placa: ABQ-742 · Traslado TR-0417</span>
-          </div>
-          <pv-tag value="En Ruta" severity="success" class="text-xs" />
-        </div>
-
-        <div class="screen-card p-3 border-round-xl flex flex-column gap-2">
-          <div class="flex justify-content-between">
-            <span class="text-muted">Conductor Asignado:</span>
-            <strong class="text-main">Luis Quispe Palacios</strong>
-          </div>
-          <div class="flex justify-content-between">
-            <span class="text-muted">Radio Frecuencia VHF:</span>
-            <strong class="text-teal">Canal 4 · 154.600 MHz</strong>
-          </div>
-          <div class="flex justify-content-between">
-            <span class="text-muted">Línea Móvil Satelital:</span>
-            <strong class="text-main">+51 984 123 456</strong>
-          </div>
-        </div>
-
-        <p class="text-muted m-0">
-          Ubicación satelital actual: <strong>Km 312 Panamericana Sur</strong>, a 45 min del Hospital Goyeneche.
-        </p>
-      </div>
-
-      <template #footer>
-        <pv-button
-          label="Cerrar"
-          severity="secondary"
-          text
-          @click="showCabinDialog = false"
-        />
-        <pv-button
-          label="Llamar a Cabina"
-          icon="pi pi-phone"
-          class="btn-call-cabin"
-          @click="showCabinDialog = false; toast.add({ severity: 'info', summary: 'Llamada Iniciada', detail: 'Conectando con terminal VoIP de cabina ABQ-742...', life: 3000 })"
-        />
-      </template>
-    </pv-dialog>
-
-    <!-- Modal 3: Ver Incidente INC-0312 -->
-    <pv-dialog
-      v-model:visible="showIncidentDialog"
-      modal
-      header="Ficha de Incidente INC-0312"
-      :style="{ width: 'min(92vw, 500px)' }"
-    >
-      <div class="flex flex-column gap-3 text-xs">
-        <div class="p-3 border-round-xl bg-orange-50 border-1 border-orange-200 flex justify-content-between align-items-center">
-          <div>
-            <strong class="text-orange-900 block">Excursión Térmica en Ruta</strong>
-            <span class="text-orange-700">Severidad: Crítica · Detección: 14:35</span>
-          </div>
-          <pv-tag value="Abierto" severity="warn" />
-        </div>
-
-        <div class="grid m-0">
-          <div class="col-6 p-1">
-            <span class="text-muted block">SmartBox</span>
-            <strong class="text-main">SB-0182</strong>
-          </div>
-          <div class="col-6 p-1">
-            <span class="text-muted block">Carga Afectada</span>
-            <strong class="text-main">24 viales de vacuna</strong>
-          </div>
-          <div class="col-6 p-1">
-            <span class="text-muted block">Temp. Máxima</span>
-            <strong class="text-red-500">9.2 °C (+1.2 °C exceso)</strong>
-          </div>
-          <div class="col-6 p-1">
-            <span class="text-muted block">Tiempo en Excursión</span>
-            <strong class="text-main">8 minutos</strong>
-          </div>
-        </div>
-
-        <div class="border-top-1 border-200 pt-2 text-muted">
-          Notificaciones enviadas automáticamente a la central médica y personal de turno Marta Rojas.
-        </div>
-      </div>
-
-      <template #footer>
-        <pv-button
-          label="Cerrar"
-          severity="secondary"
-          @click="showIncidentDialog = false"
-        />
-      </template>
-    </pv-dialog>
-
-    <!-- Modal 4: Ver Detalle del Traslado TR-0417 -->
-    <pv-dialog
-      v-model:visible="showTransferDialog"
-      modal
-      header="Detalle del Traslado TR-0417"
-      :style="{ width: 'min(92vw, 480px)' }"
-    >
-      <div class="flex flex-column gap-3 text-xs">
-        <div class="screen-card p-3 border-round-xl flex flex-column gap-2">
-          <div class="flex justify-content-between">
-            <span class="text-muted">Ruta:</span>
-            <strong class="text-main">Lima (Clínica San Borja) → Arequipa (Hosp. Goyeneche)</strong>
-          </div>
-          <div class="flex justify-content-between">
-            <span class="text-muted">Hora de Salida:</span>
-            <span class="text-main font-semibold">08:05</span>
-          </div>
-          <div class="flex justify-content-between">
-            <span class="text-muted">ETA Original:</span>
-            <span class="text-main font-semibold">14:35 (retraso actual: +45 min)</span>
-          </div>
-          <div class="flex justify-content-between">
-            <span class="text-muted">Isquemia Fría Acumulada:</span>
-            <span class="text-teal font-semibold">4 h 05 min (límite médico: 6 h 00 min)</span>
-          </div>
-        </div>
-      </div>
-
-      <template #footer>
-        <pv-button
-          label="Entendido"
-          severity="secondary"
-          @click="showTransferDialog = false"
         />
       </template>
     </pv-dialog>
@@ -547,5 +377,18 @@ function handleRetryConnection() {
   border-radius: 9999px !important;
   font-size: 0.75rem !important;
   padding: 0.45rem 1rem !important;
+}
+
+/* Visually hidden label (accessible name for the container selector) */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 </style>

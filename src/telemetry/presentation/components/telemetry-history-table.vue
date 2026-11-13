@@ -1,15 +1,26 @@
 <script setup>
 import { computed, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
+import { ThermalThresholds } from '../../domain/thermal-thresholds.value-object.js';
+import { useTelemetryFormat } from '../composables/use-telemetry-format.js';
 import TelemetryChart from './telemetry-chart.vue';
 
 const props = defineProps({
+  container: {
+    type: Object,
+    default: null
+  },
   containerId: {
-    type: String,
-    default: 'SB-0182'
+    type: [String, Number],
+    required: true
   },
   transferId: {
     type: String,
-    default: 'TR-0417'
+    default: ''
+  },
+  thresholds: {
+    type: Object,
+    default: () => new ThermalThresholds()
   },
   logs: {
     type: Array,
@@ -17,156 +28,117 @@ const props = defineProps({
   }
 });
 
-// Time range window: '6h' | '12h' | '24h'
+const { t } = useI18n();
+const { formatNumber, formatTemperature, formatKilograms } = useTelemetryFormat();
+
+// Time range window: '6h' | '12h' | '24h' (number of most recent readings shown)
 const selectedWindow = ref('6h');
 const timeWindows = [
-  { label: '6 h', value: '6h', count: 7 },
-  { label: '12 h', value: '12h', count: 14 },
-  { label: '24 h', value: '24h', count: 24 }
+  { label: '6 h', value: '6h', readings: 7 },
+  { label: '12 h', value: '12h', readings: 14 },
+  { label: '24 h', value: '24h', readings: 24 }
 ];
 
-// Fallback mock logs if store logs are empty
-const defaultLogs = [
-  { id: '1', time: '13:40', temperature: 4.2, netWeight: 18.4, batteryLevel: 82, lidStatus: 'closed' },
-  { id: '2', time: '13:30', temperature: 4.5, netWeight: 18.4, batteryLevel: 83, lidStatus: 'closed' },
-  { id: '3', time: '13:20', temperature: 4.9, netWeight: 18.4, batteryLevel: 83, lidStatus: 'closed' },
-  { id: '4', time: '13:10', temperature: 4.4, netWeight: 19.2, batteryLevel: 84, lidStatus: 'closed' },
-  { id: '5', time: '13:00', temperature: 4.2, netWeight: 19.2, batteryLevel: 84, lidStatus: 'closed' },
-  { id: '6', time: '12:50', temperature: 4.0, netWeight: 19.2, batteryLevel: 85, lidStatus: 'closed' },
-  { id: '7', time: '12:40', temperature: 3.9, netWeight: 19.2, batteryLevel: 85, lidStatus: 'closed' },
-  { id: '8', time: '12:30', temperature: 4.1, netWeight: 19.2, batteryLevel: 86, lidStatus: 'closed' },
-  { id: '9', time: '12:20', temperature: 4.5, netWeight: 19.2, batteryLevel: 86, lidStatus: 'open' },
-  { id: '10', time: '12:10', temperature: 4.3, netWeight: 16.8, batteryLevel: 87, lidStatus: 'closed' },
-  { id: '11', time: '12:00', temperature: 4.2, netWeight: 16.8, batteryLevel: 87, lidStatus: 'closed' },
-  { id: '12', time: '11:50', temperature: 4.1, netWeight: 16.8, batteryLevel: 88, lidStatus: 'closed' },
-  { id: '13', time: '11:40', temperature: 4.0, netWeight: 16.8, batteryLevel: 88, lidStatus: 'closed' },
-  { id: '14', time: '11:30', temperature: 4.2, netWeight: 16.8, batteryLevel: 89, lidStatus: 'closed' },
-  { id: '15', time: '11:20', temperature: 4.3, netWeight: 16.8, batteryLevel: 89, lidStatus: 'closed' },
-  { id: '16', time: '11:10', temperature: 4.6, netWeight: 16.8, batteryLevel: 90, lidStatus: 'open' },
-  { id: '17', time: '11:00', temperature: 4.2, netWeight: 17.6, batteryLevel: 90, lidStatus: 'closed' },
-  { id: '18', time: '10:30', temperature: 4.1, netWeight: 17.6, batteryLevel: 91, lidStatus: 'closed' },
-  { id: '19', time: '10:00', temperature: 4.0, netWeight: 17.6, batteryLevel: 92, lidStatus: 'closed' },
-  { id: '20', time: '09:30', temperature: 4.1, netWeight: 17.6, batteryLevel: 93, lidStatus: 'closed' },
-  { id: '21', time: '09:00', temperature: 4.2, netWeight: 17.6, batteryLevel: 94, lidStatus: 'closed' },
-  { id: '22', time: '08:30', temperature: 4.3, netWeight: 17.6, batteryLevel: 95, lidStatus: 'closed' },
-  { id: '23', time: '08:05', temperature: 4.2, netWeight: 17.6, batteryLevel: 96, lidStatus: 'closed' }
-];
-
-// Active source logs
-const sourceLogs = computed(() => {
-  return (props.logs && props.logs.length > 0) ? props.logs : defaultLogs;
-});
+// Logs of this container, newest first
+const sourceLogs = computed(() => props.logs
+  .filter(log => (props.container ? props.container.ownsTelemetryLog(log) : String(log.containerId) === String(props.containerId)))
+  .slice()
+  .sort((a, b) => String(b.timestampUtc).localeCompare(String(a.timestampUtc))));
 
 // Logs filtered according to the selected window
 const filteredLogs = computed(() => {
-  const currentCount = timeWindows.find(w => w.value === selectedWindow.value)?.count || 7;
+  const currentCount = timeWindows.find(w => w.value === selectedWindow.value)?.readings || 7;
   return sourceLogs.value.slice(0, currentCount);
 });
 
 // Chronological logs for chart rendering
-const chartLogs = computed(() => {
-  return [...filteredLogs.value].reverse();
-});
+const chartLogs = computed(() => [...filteredLogs.value].reverse());
 
-function formatTemp(value) {
-  if (value == null) return '--';
-  return `${Number(value).toFixed(1).replace('.', ',')} °C`;
-}
-
-function formatWeight(value) {
-  if (value == null) return '--';
-  return `${Number(value).toFixed(1).replace('.', ',')} kg`;
-}
-
-function formatBattery(value) {
-  if (value == null) return '--';
-  return `${Math.round(value)} %`;
-}
+const rangeLabel = computed(() =>
+  t('telemetry.history.range', { min: formatNumber(props.thresholds.minCelsius), max: formatTemperature(props.thresholds.maxCelsius) }));
 </script>
 
 <template>
   <div class="telemetry-history-table flex flex-column gap-3">
-    <!-- Header: Title, Subtitle and Time Window Pills (MBA-53) -->
     <div class="flex flex-column sm:flex-row sm:align-items-center justify-content-between gap-2">
       <div>
         <div class="breadcrumb-text mb-1">
-          Telemetría / <strong>{{ containerId }}</strong>
+          {{ t('telemetry.live.breadcrumb') }} / <strong>{{ containerId }}</strong>
         </div>
         <h1 class="screen-title m-0">
-          Telemetría {{ containerId }}
+          {{ t('telemetry.history.title', { id: containerId }) }}
         </h1>
         <p class="subtitle-text m-0 mt-1">
-          Historial del traslado {{ transferId }}
+          {{ transferId ? t('telemetry.history.subtitle', { transfer: transferId }) : t('telemetry.history.subtitle-no-transfer') }}
         </p>
       </div>
 
-      <!-- Time Window Selectors (6 h · 12 h · 24 h) -->
       <pill-tabs
         v-model="selectedWindow"
         :options="timeWindows"
         size="sm"
+        :aria-label="t('telemetry.history.window-label')"
       />
     </div>
 
-    <!-- Continuous Temperature Chart Card (MBA-53) -->
-    <div class="chart-card screen-card border-round-2xl p-4">
+    <section class="chart-card screen-card border-round-2xl p-4" :aria-label="t('telemetry.history.chart-title')">
       <div class="flex align-items-center justify-content-between mb-3">
-        <span class="chart-title font-bold">Temperatura</span>
-        <span class="range-sublabel">Rango 2–8 °C</span>
+        <span class="chart-title font-bold">{{ t('telemetry.history.chart-title') }}</span>
+        <span class="range-sublabel">{{ rangeLabel }}</span>
       </div>
 
       <div class="chart-container">
         <telemetry-chart
           :data="chartLogs"
           :height="130"
+          :safe-min="thresholds.minCelsius"
+          :safe-max="thresholds.maxCelsius"
           :interactive="true"
         />
       </div>
-    </div>
+    </section>
 
-    <!-- Telemetric History Data Table Card (MBA-53) -->
+    <p v-if="!filteredLogs.length" class="text-xs text-muted m-0" role="status">{{ t('telemetry.history.empty') }}</p>
+
     <app-data-table
+      v-else
       :value="filteredLogs"
       :paginator="false"
       min-width="35rem"
+      :aria-label="t('telemetry.history.table-label', { id: containerId })"
     >
-      <!-- Columna: HORA -->
-      <pv-column field="time" header="HORA">
+      <pv-column field="time" :header="t('telemetry.column.time')">
         <template #body="{ data }">
           <span class="table-cell-bold">{{ data.time }}</span>
         </template>
       </pv-column>
 
-      <!-- Columna: TEMPERATURA -->
-      <pv-column field="temperature" header="TEMPERATURA">
+      <pv-column field="temperature" :header="t('telemetry.column.temperature')">
         <template #body="{ data }">
-          <span class="table-cell-regular">{{ formatTemp(data.temperature) }}</span>
+          <span class="table-cell-regular">{{ formatTemperature(data.temperature) }}</span>
         </template>
       </pv-column>
 
-      <!-- Columna: PESO -->
-      <pv-column field="netWeight" header="PESO">
+      <pv-column field="netWeight" :header="t('telemetry.column.weight')">
         <template #body="{ data }">
-          <span class="table-cell-regular">{{ formatWeight(data.netWeight) }}</span>
+          <span class="table-cell-regular">{{ formatKilograms(data.netWeight) }}</span>
         </template>
       </pv-column>
 
-      <!-- Columna: BATERÍA -->
-      <pv-column field="batteryLevel" header="BATERÍA">
+      <pv-column field="batteryLevel" :header="t('telemetry.column.battery')">
         <template #body="{ data }">
           <div class="flex align-items-center gap-2">
             <battery-gauge :level="data.batteryLevel" variant="capsule" />
-            <span class="text-xs font-semibold text-main">{{ formatBattery(data.batteryLevel) }}</span>
+            <span class="text-xs font-semibold text-main">{{ Math.round(data.batteryLevel) }} %</span>
           </div>
         </template>
       </pv-column>
 
-      <!-- Columna: TAPA -->
-      <pv-column field="lidStatus" header="TAPA">
+      <pv-column field="lidStatus" :header="t('telemetry.column.lid')">
         <template #body="{ data }">
           <status-badge
             :status="data.lidStatus === 'closed' ? 'success' : 'warning'"
-            :label="data.lidStatus === 'closed' ? 'Cerrada' : 'Abierta'"
+            :label="t(`telemetry.lid.${data.lidStatus}`)"
           />
         </template>
       </pv-column>

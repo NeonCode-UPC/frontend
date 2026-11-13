@@ -1,5 +1,7 @@
 <script setup>
 import { ref, computed, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
+import { useTelemetryFormat } from '../composables/use-telemetry-format.js';
 
 /**
  * Modal dialog to confirm detected load cell mass variation and vial withdrawal (MBA-52).
@@ -16,23 +18,21 @@ const props = defineProps({
   defaultDiff: {
     type: Number,
     default: -0.8
-  },
-  defaultUnits: {
-    type: Number,
-    default: 2
   }
 });
 
 const emit = defineEmits(['update:visible', 'confirm']);
+const { t } = useI18n();
+const { formatKilograms, formatWeightDiff } = useTelemetryFormat();
 
-const responsible = ref('Marta Rojas · paramédica');
-const weightDiff = ref(-0.8);
+const responsible = ref('');
+const weightDiff = ref(props.defaultDiff);
 const isSubmitting = ref(false);
 
 watch(() => props.visible, (newVal) => {
   if (newVal) {
     weightDiff.value = props.defaultDiff;
-    responsible.value = 'Marta Rojas · paramédica';
+    responsible.value = '';
   }
 });
 
@@ -43,14 +43,17 @@ const estimatedUnits = computed(() => {
   return units > 0 ? units : 1;
 });
 
+const canConfirm = computed(() => Boolean(props.container?.id) && responsible.value.trim().length > 0);
+
 function handleClose() {
   emit('update:visible', false);
 }
 
 function handleConfirm() {
+  if (!canConfirm.value) return;
   isSubmitting.value = true;
   emit('confirm', {
-    containerId: props.container?.id || 'SB-0182',
+    containerId: props.container.id,
     weightDiff: weightDiff.value,
     units: -Math.abs(estimatedUnits.value),
     responsible: responsible.value
@@ -68,58 +71,56 @@ function handleConfirm() {
     :dismissable-mask="true"
     :style="{ width: '480px', maxWidth: '95vw' }"
     class="stock-weight-dialog"
+    :aria-label="t('telemetry.withdrawal.title')"
     @update:visible="emit('update:visible', $event)"
   >
     <template #header>
       <div class="modal-header">
-        <h2 class="text-xl font-bold text-main m-0">Confirmar retiro detectado</h2>
-        <p class="text-xs text-muted mt-1 mb-0">El sensor de peso registró una variación</p>
+        <h2 class="text-xl font-bold text-main m-0">{{ t('telemetry.withdrawal.title') }}</h2>
+        <p class="text-xs text-muted mt-1 mb-0">{{ t('telemetry.withdrawal.subtitle') }}</p>
       </div>
     </template>
 
     <div class="modal-body flex flex-column gap-3 py-2">
-      <!-- 2 Cards: Diferencia de masa & Estimado -->
       <div class="grid m-0 gap-2">
-        <!-- Diferencia de masa -->
         <div class="col p-0">
-          <div class="metric-card p-3 border-round-2xl">
-            <span class="metric-label block text-xs">Diferencia de masa</span>
+          <div class="metric-card p-3 border-round-2xl" role="group" :aria-label="t('telemetry.withdrawal.mass-diff')">
+            <span class="metric-label block text-xs">{{ t('telemetry.withdrawal.mass-diff') }}</span>
             <div class="metric-value text-2xl font-bold mt-1">
-              {{ weightDiff < 0 ? `${weightDiff.toFixed(1).replace('.', ',')} kg` : `+${weightDiff.toFixed(1).replace('.', ',')} kg` }}
+              {{ formatWeightDiff(weightDiff) }}
             </div>
-            <small class="text-2xs text-muted block mt-1">Sensor HX711 (±0.05 kg)</small>
+            <small class="text-2xs text-muted block mt-1">{{ t('telemetry.withdrawal.sensor') }}</small>
           </div>
         </div>
 
-        <!-- Estimado -->
         <div class="col p-0">
-          <div class="metric-card p-3 border-round-2xl">
-            <span class="metric-label block text-xs">Estimado ({{ unitWeight.toFixed(1).replace('.', ',') }} kg c/u)</span>
+          <div class="metric-card p-3 border-round-2xl" role="group" :aria-label="t('telemetry.withdrawal.estimate', { value: formatKilograms(unitWeight) })">
+            <span class="metric-label block text-xs">{{ t('telemetry.withdrawal.estimate', { value: formatKilograms(unitWeight) }) }}</span>
             <div class="metric-value text-2xl font-bold mt-1">
-              {{ estimatedUnits }} viales
+              {{ t('telemetry.withdrawal.vials', { count: estimatedUnits }, estimatedUnits) }}
             </div>
-            <small class="text-2xs text-teal block mt-1 font-semibold">Cálculo biométrico</small>
+            <small class="text-2xs text-teal block mt-1 font-semibold">{{ t('telemetry.withdrawal.calculation') }}</small>
           </div>
         </div>
       </div>
 
-      <!-- Retirado Por Card / Input Field -->
       <div class="responsible-field p-3 border-round-2xl">
         <label for="responsible-input" class="responsible-label block text-2xs font-bold uppercase tracking-wider mb-1">
-          Retirado por
+          {{ t('telemetry.withdrawal.responsible') }}
         </label>
         <pv-input-text
           id="responsible-input"
           v-model="responsible"
           class="w-full responsible-input border-none p-0 text-sm font-semibold"
-          placeholder="Nombre y cargo del responsable"
+          :placeholder="t('telemetry.withdrawal.responsible-placeholder')"
+          aria-required="true"
         />
       </div>
 
       <div class="notice-info flex align-items-center gap-2 p-2 border-round-lg">
-        <i class="pi pi-shield text-teal text-xs"></i>
+        <i class="pi pi-shield text-teal text-xs" aria-hidden="true"></i>
         <span class="text-2xs text-muted">
-          Este registro se vinculará a la cadena de custodia del SmartBox {{ container?.id || 'SB-0182' }}.
+          {{ t('telemetry.withdrawal.custody-note', { id: container?.displayCode || container?.id || '—' }) }}
         </span>
       </div>
     </div>
@@ -127,15 +128,16 @@ function handleConfirm() {
     <template #footer>
       <div class="flex justify-content-end align-items-center gap-2 pt-2">
         <pv-button
-          label="Cancelar"
+          :label="t('telemetry.action.cancel')"
           class="btn-cancel px-4 py-2 text-xs border-round-pill"
           text
           @click="handleClose"
         />
         <pv-button
-          label="Registrar retiro"
+          :label="t('telemetry.withdrawal.confirm')"
           class="btn-confirm px-4 py-2 text-xs border-round-pill font-bold"
           :loading="isSubmitting"
+          :disabled="!canConfirm"
           @click="handleConfirm"
         />
       </div>

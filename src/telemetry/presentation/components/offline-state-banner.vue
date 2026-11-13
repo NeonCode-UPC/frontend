@@ -1,26 +1,22 @@
 <script setup>
 import { ref } from 'vue';
+import { useI18n } from 'vue-i18n';
+import { useTelemetryFormat } from '../composables/use-telemetry-format.js';
 
 const props = defineProps({
   containerId: {
+    type: [String, Number],
+    required: true
+  },
+  /** Container that is not responding (null when every container is reporting). */
+  offlineContainer: {
+    type: Object,
+    default: null
+  },
+  /** Last reading timestamp of the selected container (ISO). */
+  lastReadingAt: {
     type: String,
-    default: 'SB-0182'
-  },
-  offlineContainerId: {
-    type: String,
-    default: 'SB-0165'
-  },
-  lastTemp: {
-    type: Number,
-    default: 4.9
-  },
-  lastTime: {
-    type: String,
-    default: '13:34'
-  },
-  lastPingSeconds: {
-    type: Number,
-    default: 3
+    default: null
   },
   /**
    * Display mode:
@@ -35,6 +31,8 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['retry']);
+const { t } = useI18n();
+const { formatTemperature, formatDateTime } = useTelemetryFormat();
 
 const isRetrying = ref(false);
 
@@ -49,51 +47,54 @@ function handleRetry() {
 
 <template>
   <div class="offline-state-banner flex flex-column gap-3">
-    <!-- Header: Title and Subtitle matching MBA-54 -->
     <div class="flex flex-column sm:flex-row sm:align-items-center justify-content-between gap-2">
       <div>
         <div class="breadcrumb-text mb-1">
-          Telemetría / <strong>{{ containerId }}</strong>
+          {{ t('telemetry.live.breadcrumb') }} / <strong>{{ containerId }}</strong>
         </div>
         <h1 class="screen-title m-0">
-          Telemetría {{ containerId }}
+          {{ t('telemetry.history.title', { id: containerId }) }}
         </h1>
         <p class="subtitle-text m-0 mt-1">
-          Estados de conexión
+          {{ t('telemetry.offline.subtitle') }}
         </p>
       </div>
     </div>
 
-    <!-- Cards Grid (MBA-54) -->
     <div class="grid m-0">
-      <!-- Card 1: Obteniendo telemetría... -->
+      <!-- Card 1: Fetching telemetry -->
       <div
         v-if="mode === 'gallery' || mode === 'loading'"
         :class="mode === 'gallery' ? 'col-12 lg:col-6 p-0 pr-0 lg:pr-3 mb-3 lg:mb-0' : 'col-12 p-0'"
       >
-        <div class="connection-state-card screen-card border-round-2xl p-5 flex flex-column align-items-center justify-content-center text-center">
-          <!-- Animated Spinner -->
-          <div class="spinner-wrapper mb-4">
+        <div
+          class="connection-state-card screen-card border-round-2xl p-5 flex flex-column align-items-center justify-content-center text-center"
+          role="status"
+          aria-live="polite"
+        >
+          <div class="spinner-wrapper mb-4" aria-hidden="true">
             <div class="teal-circular-spinner"></div>
           </div>
 
           <h2 class="state-card-title m-0 mb-2">
-            Obteniendo telemetría...
+            {{ t('telemetry.offline.loading-title') }}
           </h2>
           <p class="state-card-desc m-0 text-muted">
-            Última lectura hace {{ lastPingSeconds }} s
+            {{ t('telemetry.offline.last-reading', { at: formatDateTime(lastReadingAt) }) }}
           </p>
         </div>
       </div>
 
-      <!-- Card 2: No se pudo obtener la telemetría -->
+      <!-- Card 2: Telemetry could not be retrieved -->
       <div
         v-if="mode === 'gallery' || mode === 'offline'"
         :class="mode === 'gallery' ? 'col-12 lg:col-6 p-0 pl-0 lg:pl-3' : 'col-12 p-0'"
       >
-        <div class="connection-state-card screen-card border-round-2xl p-5 flex flex-column align-items-center justify-content-center text-center">
-          <!-- Red Offline Icon Badge -->
-          <div class="offline-icon-badge mb-4 flex align-items-center justify-content-center">
+        <div
+          class="connection-state-card screen-card border-round-2xl p-5 flex flex-column align-items-center justify-content-center text-center"
+          role="alert"
+        >
+          <div class="offline-icon-badge mb-4 flex align-items-center justify-content-center" aria-hidden="true">
             <svg class="wifi-off-svg" viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="#E05A46" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M1 1l22 22" />
               <path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55" />
@@ -105,21 +106,25 @@ function handleRetry() {
             </svg>
           </div>
 
-          <h2 class="state-card-title m-0 mb-2">
-            No se pudo obtener la telemetría
-          </h2>
-          <p class="state-card-desc m-0 text-muted mb-4">
-            {{ offlineContainerId }} no responde. Última lectura {{ lastTemp.toFixed(1).replace('.', ',') }} °C a las {{ lastTime }}.
-          </p>
+          <template v-if="offlineContainer">
+            <h2 class="state-card-title m-0 mb-2">
+              {{ t('telemetry.offline.error-title') }}
+            </h2>
+            <p class="state-card-desc m-0 text-muted mb-4">
+              {{ t('telemetry.offline.error-detail', {
+                id: offlineContainer.displayCode || offlineContainer.id,
+                temp: formatTemperature(offlineContainer.currentTemperature),
+                at: formatDateTime(offlineContainer.lastTelemetryAt)
+              }) }}
+            </p>
 
-          <!-- Retry Button -->
-          <pv-button
-            class="btn-retry"
-            :loading="isRetrying"
-            @click="handleRetry"
-          >
-            <span>Reintentar</span>
-          </pv-button>
+            <pv-button class="btn-retry" :loading="isRetrying" @click="handleRetry">
+              <span>{{ t('telemetry.offline.retry') }}</span>
+            </pv-button>
+          </template>
+          <template v-else>
+            <h2 class="state-card-title m-0 mb-2">{{ t('telemetry.offline.all-online') }}</h2>
+          </template>
         </div>
       </div>
     </div>

@@ -1,9 +1,11 @@
 <script setup>
 import { computed, onMounted } from 'vue';
+import { useRouter } from 'vue-router';
 import { useLayoutHeader } from '../../../shared/composables/use-layout-header.js';
 import { useCustodyStore } from '../../application/custody-store.js';
 
 const store = useCustodyStore();
+const router = useRouter();
 const { searchQuery, configureHeader } = useLayoutHeader();
 onMounted(() => { configureHeader({ placeholder: 'Filtrar por registro de auditoría...', visible: true }); store.load(); });
 const events = computed(() => store.auditEvents.filter((event) => !searchQuery.value || `${event.date} ${event.time} ${event.user} ${event.event} ${event.resource}`.toLocaleLowerCase('es').includes(searchQuery.value.toLocaleLowerCase('es'))));
@@ -13,20 +15,16 @@ const exportRecords = () => window.print();
 <template>
   <base-screen
     breadcrumb="Auditoría"
-    title="Auditoría institucional"
-    subtitle="Registro inmutable de eventos y accesos en el sistema"
+    title="Auditoría"
+    subtitle="Registro de eventos de la institución"
     search-placeholder="Filtrar por registro de auditoría..."
     :fluid="true"
   >
     <template #actions>
-      <pv-button
-        label="Exportar"
-        icon="pi pi-download"
-        severity="secondary"
-        outlined
-        class="border-round-pill"
-        @click="exportRecords"
-      />
+      <div class="audit-actions">
+        <button class="audit-report-link" @click="router.push('/custody/reports')">Reportes</button>
+        <pv-button label="Exportar" icon="pi pi-download" severity="secondary" outlined class="border-round-pill" @click="exportRecords" />
+      </div>
     </template>
 
     <div class="audit-page">

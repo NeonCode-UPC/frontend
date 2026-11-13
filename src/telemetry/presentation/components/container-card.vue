@@ -1,6 +1,8 @@
 <script setup>
 import { computed } from 'vue';
 import { useRouter } from 'vue-router';
+import { useI18n } from 'vue-i18n';
+import { useTelemetryFormat } from '../composables/use-telemetry-format.js';
 
 /**
  * Component displaying an individual SmartBox container card in the catalog grid.
@@ -19,25 +21,27 @@ const props = defineProps({
 
 const emit = defineEmits(['select', 'unlink']);
 const router = useRouter();
+const { t } = useI18n();
+const { formatTemperature, formatNumber, containerState } = useTelemetryFormat();
 
 const isOnline = computed(() => props.container.status !== 'offline');
 
-const statusBadgeClass = computed(() => {
-  if (props.container.status === 'offline') return 'badge-offline';
-  if (props.container.currentTemperature > props.container.targetMaxTemperature || props.container.status === 'warning') return 'badge-critical';
-  if (!props.container.ambulancePlate || props.container.status === 'unlinked') return 'badge-available';
-  return 'badge-stable';
-});
+const state = computed(() => containerState(props.container));
 
-const statusLabel = computed(() => {
-  if (props.container.status === 'offline') return 'Desconectado';
-  if (props.container.currentTemperature > props.container.targetMaxTemperature || props.container.status === 'warning') return 'Crítica';
-  if (!props.container.ambulancePlate || props.container.status === 'unlinked') return 'Disponible';
-  return 'Estable';
+const statusBadgeClass = computed(() => ({
+  offline: 'badge-offline',
+  critical: 'badge-critical',
+  available: 'badge-available',
+  stable: 'badge-stable'
+})[state.value.key]);
+
+const safeRangeLabel = computed(() => {
+  const th = props.container.thermalThresholds;
+  return `${formatNumber(th.minCelsius)}–${formatTemperature(th.maxCelsius)}`;
 });
 
 const batteryLevelClass = computed(() => {
-  if (props.container.batteryLevel <= 20) return 'bg-red-500';
+  if (props.container.batteryLevel <= props.container.batteryWarningPercentage) return 'bg-red-500';
   if (props.container.batteryLevel <= 40) return 'bg-amber-500';
   return 'bg-emerald-600';
 });
@@ -48,7 +52,7 @@ function handleCardClick() {
 
 function navigateToLive(e) {
   e.stopPropagation();
-  router.push('/telemetry/live');
+  router.push({ path: '/telemetry/live', query: { container: props.container.displayCode || props.container.id } });
 }
 </script>
 
@@ -58,19 +62,20 @@ function navigateToLive(e) {
     :class="{ 'card-selected': isSelected }"
     tabindex="0"
     role="button"
-    :aria-label="`SmartBox ${container.id}`"
+    :aria-label="t('telemetry.card.aria', { id: container.displayCode, state: state.label })"
+    :aria-pressed="isSelected"
     @click="handleCardClick"
     @keydown.enter="handleCardClick"
   >
     <!-- Header: ID + Connectivity Tag -->
     <div class="flex justify-content-between align-items-center mb-3">
       <div class="flex align-items-center gap-2">
-        <div class="box-icon-wrap flex align-items-center justify-content-center border-round-lg">
+        <div class="box-icon-wrap flex align-items-center justify-content-center border-round-lg" aria-hidden="true">
           <i class="pi pi-box text-sm"></i>
         </div>
         <div>
-          <h3 class="box-id text-base font-bold m-0">{{ container.id }}</h3>
-          <span class="box-model text-xs">{{ container.model || 'Standard SmartBox 20L' }}</span>
+          <h3 class="box-id text-base font-bold m-0">{{ container.displayCode }}</h3>
+          <span class="box-model text-xs">{{ container.model }}</span>
         </div>
       </div>
 
@@ -79,8 +84,8 @@ function navigateToLive(e) {
         class="connectivity-tag text-xs font-semibold px-2 py-1 border-round-pill flex align-items-center gap-1"
         :class="isOnline ? 'conn-online' : 'conn-offline'"
       >
-        <span class="status-dot" :class="isOnline ? 'dot-online' : 'dot-offline'"></span>
-        {{ isOnline ? 'En línea' : 'Sin conexión' }}
+        <span class="status-dot" :class="isOnline ? 'dot-online' : 'dot-offline'" aria-hidden="true"></span>
+        {{ isOnline ? t('telemetry.connectivity.online') : t('telemetry.connectivity.offline') }}
       </span>
     </div>
 
@@ -89,16 +94,16 @@ function navigateToLive(e) {
       <!-- Temperature -->
       <div class="col-4 p-1">
         <div class="metric-mini p-2 border-round-xl">
-          <span class="metric-label block text-xs">Temp.</span>
+          <span class="metric-label block text-xs">{{ t('telemetry.card.temperature') }}</span>
           <div class="metric-val text-sm md:text-base font-bold mt-1">
-            {{ isOnline ? `${container.currentTemperature.toFixed(1).replace('.', ',')} °C` : '—' }}
+            {{ isOnline ? formatTemperature(container.currentTemperature) : '—' }}
           </div>
           <span
             v-if="isOnline"
             class="temp-chip text-2xs px-1 border-round mt-1 inline-block"
             :class="container.isTemperatureInSafeRange ? 'temp-safe' : 'temp-warn'"
           >
-            {{ container.isTemperatureInSafeRange ? '2-8 °C' : 'Alerta' }}
+            {{ container.isTemperatureInSafeRange ? safeRangeLabel : t('telemetry.card.alert') }}
           </span>
         </div>
       </div>
@@ -106,11 +111,18 @@ function navigateToLive(e) {
       <!-- Battery -->
       <div class="col-4 p-1">
         <div class="metric-mini p-2 border-round-xl">
-          <span class="metric-label block text-xs">Batería</span>
+          <span class="metric-label block text-xs">{{ t('telemetry.card.battery') }}</span>
           <div class="metric-val text-sm md:text-base font-bold mt-1">
             {{ container.batteryLevel }}%
           </div>
-          <div class="battery-track mt-1 w-full border-round-pill">
+          <div
+            class="battery-track mt-1 w-full border-round-pill"
+            role="meter"
+            :aria-label="t('telemetry.card.battery')"
+            aria-valuemin="0"
+            aria-valuemax="100"
+            :aria-valuenow="container.batteryLevel"
+          >
             <div
               class="battery-fill border-round-pill"
               :class="batteryLevelClass"
@@ -123,12 +135,12 @@ function navigateToLive(e) {
       <!-- Ambulance -->
       <div class="col-4 p-1">
         <div class="metric-mini p-2 border-round-xl">
-          <span class="metric-label block text-xs">Ambulancia</span>
+          <span class="metric-label block text-xs">{{ t('telemetry.card.ambulance') }}</span>
           <div class="metric-val text-sm md:text-base font-bold mt-1 text-truncate">
             {{ container.ambulancePlate || '—' }}
           </div>
           <span class="text-2xs text-muted block mt-1 text-truncate">
-            {{ container.location ? container.location.split(' ')[0] : 'Base' }}
+            {{ container.location || '—' }}
           </span>
         </div>
       </div>
@@ -140,15 +152,15 @@ function navigateToLive(e) {
         class="state-badge text-xs font-semibold px-2 py-1 border-round-pill flex align-items-center gap-1"
         :class="statusBadgeClass"
       >
-        <span class="dot-sm"></span>
-        {{ statusLabel }}
+        <span class="dot-sm" aria-hidden="true"></span>
+        {{ state.label }}
       </span>
 
       <div class="flex align-items-center gap-2">
         <pv-button
-          v-tooltip.top="'Supervisión telemétrica continua'"
+          v-tooltip.top="t('telemetry.card.live-tooltip')"
           icon="pi pi-chart-line"
-          label="En vivo"
+          :label="t('telemetry.card.live')"
           size="small"
           text
           class="p-button-live text-xs"
@@ -160,7 +172,8 @@ function navigateToLive(e) {
           text
           size="small"
           class="p-button-arrow"
-          @click="handleCardClick"
+          :aria-label="t('telemetry.card.open-detail', { id: container.displayCode })"
+          @click.stop="handleCardClick"
         />
       </div>
     </div>

@@ -1,6 +1,9 @@
 <script setup>
-import { ref, computed, watch } from 'vue';
+import { ref, computed, watch, onBeforeUnmount } from 'vue';
+import { useI18n } from 'vue-i18n';
+import { useToast } from 'primevue/usetoast';
 import { useTelemetryStore } from '../../application/telemetry.store.js';
+import { LinkContainerCommand } from '../../domain/link-container.command.js';
 
 /**
  * 3-step Wizard modal for linking a SmartBox IoT device to an ambulance (MBA-33, MBA-34, MBA-35).
@@ -11,13 +14,14 @@ const props = defineProps({
     required: true
   },
   preselectedContainerId: {
-    type: String,
+    type: [String, Number],
     default: ''
   }
 });
 
 const emit = defineEmits(['update:visible', 'linked']);
-
+const { t } = useI18n();
+const toast = useToast();
 const telemetryStore = useTelemetryStore();
 
 const currentStep = ref(1);
@@ -25,8 +29,10 @@ const selectedAmbulance = ref(null);
 const selectedContainerId = ref('');
 const isActivating = ref(false);
 const activationProgress = ref(0);
+let activationTimer = null;
 
-// Available ambulances list (matching MBA-33)
+// Available ambulances (MBA-33).
+// Pending dependency: read them from `/ambulances` once the Transport BC fills that collection (plan 3.5).
 const availableAmbulances = ref([
   { plate: 'AUC-215', model: 'Hyundai H350', location: 'San Borja', status: 'available' },
   { plate: 'BHM-903', model: 'Renault Master', location: 'Miraflores', status: 'available' },
@@ -34,29 +40,31 @@ const availableAmbulances = ref([
   { plate: 'C9M-714', model: 'Ford Transit', location: 'La Molina', status: 'available' }
 ]);
 
+const firstUnlinkedContainerId = computed(() =>
+  telemetryStore.containers.find(c => !c.ambulancePlate && c.status !== 'offline')?.id ?? '');
+
 watch(() => props.visible, (newVal) => {
   if (newVal) {
     currentStep.value = 1;
-    selectedAmbulance.value = availableAmbulances.value[0]; // Default AUC-215
-    selectedContainerId.value = props.preselectedContainerId || 'SB-0165';
+    selectedAmbulance.value = availableAmbulances.value[0] || null;
+    selectedContainerId.value = props.preselectedContainerId || firstUnlinkedContainerId.value;
     activationProgress.value = 0;
     isActivating.value = false;
+  } else {
+    clearInterval(activationTimer);
   }
 });
 
+onBeforeUnmount(() => clearInterval(activationTimer));
+
 // Container validation
-const targetContainer = computed(() => {
-  return telemetryStore.containers.find(c => c.id === selectedContainerId.value);
-});
+const targetContainer = computed(() => telemetryStore.findContainer(selectedContainerId.value));
 
-const isContainerAlreadyLinked = computed(() => {
-  if (!targetContainer.value) return false;
-  return Boolean(targetContainer.value.ambulancePlate);
-});
+const isContainerAlreadyLinked = computed(() => Boolean(targetContainer.value?.ambulancePlate));
 
-const conflictingPlate = computed(() => {
-  return targetContainer.value?.ambulancePlate || '';
-});
+const conflictingPlate = computed(() => targetContainer.value?.ambulancePlate || '');
+
+const stepDescription = computed(() => t(`telemetry.wizard.step-${currentStep.value}`));
 
 // Step navigation
 function goToStep(step) {
@@ -69,33 +77,35 @@ function goToStep(step) {
 }
 
 function startActivationSimulation() {
+  clearInterval(activationTimer);
   activationProgress.value = 15;
-  const interval = setInterval(() => {
+  activationTimer = setInterval(() => {
     if (activationProgress.value < 100) {
-      activationProgress.value += 20;
+      activationProgress.value = Math.min(100, activationProgress.value + 20);
     } else {
-      clearInterval(interval);
+      clearInterval(activationTimer);
     }
   }, 200);
-}
-
-function handleClose() {
-  emit('update:visible', false);
 }
 
 async function handleCompleteLink() {
   if (!selectedAmbulance.value || !selectedContainerId.value) return;
   isActivating.value = true;
   try {
-    await telemetryStore.linkContainer({
+    const command = new LinkContainerCommand({
       containerId: selectedContainerId.value,
       ambulancePlate: selectedAmbulance.value.plate
     });
-    emit('linked', {
-      containerId: selectedContainerId.value,
-      ambulancePlate: selectedAmbulance.value.plate
-    });
+    await telemetryStore.linkContainer(command);
+    emit('linked', { containerId: command.containerId, ambulancePlate: command.ambulancePlate });
     emit('update:visible', false);
+  } catch {
+    toast.add({
+      severity: 'error',
+      summary: t('telemetry.toast.error-summary'),
+      detail: t('telemetry.toast.error-detail'),
+      life: 4000
+    });
   } finally {
     isActivating.value = false;
   }
@@ -110,62 +120,55 @@ async function handleCompleteLink() {
     :dismissable-mask="true"
     :style="{ width: '740px', maxWidth: '96vw' }"
     class="link-wizard-dialog"
+    :aria-label="t('telemetry.wizard.title')"
     @update:visible="emit('update:visible', $event)"
   >
     <template #header>
       <div class="w-full flex flex-column md:flex-row md:align-items-center justify-content-between gap-3">
         <div>
-          <span class="breadcrumb-text text-xs text-muted block mb-1">Ambulancias / vincular</span>
-          <h2 class="text-2xl font-bold text-main m-0">Vincular contenedor</h2>
-          <span class="text-xs text-muted mt-1 block">
-            <template v-if="currentStep === 1">Paso 1 de 3 · ambulancia disponible</template>
-            <template v-else-if="currentStep === 2">Paso 2 de 3 · identificador único del SmartBox</template>
-            <template v-else>Paso 3 de 3 · confirmación</template>
-          </span>
+          <span class="breadcrumb-text text-xs text-muted block mb-1">{{ t('telemetry.wizard.breadcrumb') }}</span>
+          <h2 class="text-2xl font-bold text-main m-0">{{ t('telemetry.wizard.title') }}</h2>
+          <span class="text-xs text-muted mt-1 block" aria-live="polite">{{ stepDescription }}</span>
         </div>
 
         <!-- Step Pills Indicator -->
-        <div class="steps-nav flex align-items-center gap-2">
-          <span
+        <ol class="steps-nav flex align-items-center gap-2 list-none p-0 m-0" :aria-label="t('telemetry.wizard.steps-label')">
+          <li
+            v-for="step in [1, 2, 3]"
+            :key="step"
             class="step-pill text-xs font-semibold px-3 py-1 border-round-pill transition-all"
-            :class="currentStep === 1 ? 'step-active' : 'step-inactive'"
+            :class="currentStep === step ? 'step-active' : 'step-inactive'"
+            :aria-current="currentStep === step ? 'step' : undefined"
           >
-            1 Ambulancia
-          </span>
-          <span
-            class="step-pill text-xs font-semibold px-3 py-1 border-round-pill transition-all"
-            :class="currentStep === 2 ? 'step-active' : 'step-inactive'"
-          >
-            2 SmartBox
-          </span>
-          <span
-            class="step-pill text-xs font-semibold px-3 py-1 border-round-pill transition-all"
-            :class="currentStep === 3 ? 'step-active' : 'step-inactive'"
-          >
-            3 Confirmar
-          </span>
-        </div>
+            {{ step }} {{ t(`telemetry.wizard.step-name-${step}`) }}
+          </li>
+        </ol>
       </div>
     </template>
 
     <div class="wizard-body py-3">
-      <!-- ================= STEP 1: Selección de Ambulancia (MBA-33) ================= -->
+      <!-- ================= STEP 1: Ambulance (MBA-33) ================= -->
       <div v-if="currentStep === 1" class="step-1-content flex flex-column gap-3">
         <div class="panel-card p-4 border-round-2xl">
           <div class="flex justify-content-between align-items-center mb-3">
-            <h3 class="panel-title text-sm font-bold m-0 text-main">Ambulancias disponibles</h3>
+            <h3 id="ambulance-list-title" class="panel-title text-sm font-bold m-0 text-main">{{ t('telemetry.wizard.available-ambulances') }}</h3>
             <span class="badge-count text-xs font-bold px-2 py-1 border-round-pill">
               • {{ availableAmbulances.length }}
             </span>
           </div>
 
-          <div class="ambulance-list flex flex-column gap-2">
+          <div class="ambulance-list flex flex-column gap-2" role="radiogroup" aria-labelledby="ambulance-list-title">
             <div
               v-for="amb in availableAmbulances"
               :key="amb.plate"
               class="ambulance-row p-3 border-round-xl flex justify-content-between align-items-center cursor-pointer transition-all"
               :class="{ 'row-selected': selectedAmbulance?.plate === amb.plate }"
+              role="radio"
+              tabindex="0"
+              :aria-checked="selectedAmbulance?.plate === amb.plate"
               @click="selectedAmbulance = amb"
+              @keydown.enter.prevent="selectedAmbulance = amb"
+              @keydown.space.prevent="selectedAmbulance = amb"
             >
               <div class="flex align-items-center gap-3">
                 <div class="amb-plate text-sm font-bold text-main">{{ amb.plate }}</div>
@@ -176,33 +179,31 @@ async function handleCompleteLink() {
                 class="amb-badge text-xs font-semibold px-3 py-1 border-round-pill"
                 :class="selectedAmbulance?.plate === amb.plate ? 'badge-chosen' : 'badge-avail'"
               >
-                • {{ selectedAmbulance?.plate === amb.plate ? 'Elegida' : 'Disponible' }}
+                • {{ selectedAmbulance?.plate === amb.plate ? t('telemetry.wizard.chosen') : t('telemetry.wizard.available') }}
               </span>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- ================= STEP 2: Identificador del Contenedor (MBA-34) ================= -->
+      <!-- ================= STEP 2: Container identifier (MBA-34) ================= -->
       <div v-if="currentStep === 2" class="step-2-content flex flex-column gap-3">
         <div class="grid m-0 gap-3">
-          <!-- Left: Selected Ambulance Card -->
           <div class="col-12 md:col-5 p-0">
             <div class="panel-card p-3 border-round-2xl h-full flex flex-column justify-content-between">
               <div>
-                <span class="text-xs text-muted block mb-2 font-medium">Ambulancia</span>
+                <span class="text-xs text-muted block mb-2 font-medium">{{ t('telemetry.wizard.ambulance') }}</span>
                 <div class="amb-plate text-base font-bold text-main">{{ selectedAmbulance?.plate }}</div>
                 <div class="text-xs text-muted mt-1">{{ selectedAmbulance?.model }}</div>
               </div>
               <div class="mt-3">
                 <span class="amb-badge badge-chosen text-xs font-semibold px-3 py-1 border-round-pill inline-block">
-                  • Elegida
+                  • {{ t('telemetry.wizard.chosen') }}
                 </span>
               </div>
             </div>
           </div>
 
-          <!-- Right: Container Selector / Input with Validation -->
           <div class="col-12 md:col p-0">
             <div
               class="panel-card p-3 border-round-2xl h-full flex flex-column justify-content-between transition-all"
@@ -210,58 +211,57 @@ async function handleCompleteLink() {
             >
               <div>
                 <label for="container-select" class="block text-2xs font-bold text-muted uppercase tracking-wider mb-2">
-                  Identificador del contenedor
+                  {{ t('telemetry.wizard.container-id') }}
                 </label>
                 <div class="flex gap-2">
                   <pv-select
-                    id="container-select"
                     v-model="selectedContainerId"
+                    input-id="container-select"
                     :options="telemetryStore.containers"
-                    option-label="id"
+                    option-label="displayCode"
                     option-value="id"
-                    placeholder="Seleccionar SmartBox"
+                    :placeholder="t('telemetry.wizard.select-container')"
                     class="w-full text-sm font-bold select-custom"
+                    :invalid="isContainerAlreadyLinked"
+                    aria-describedby="container-select-feedback"
                   />
                 </div>
               </div>
 
-              <!-- Error notice if already linked -->
-              <div v-if="isContainerAlreadyLinked" class="error-notice mt-2 text-xs flex align-items-center gap-1">
-                <i class="pi pi-exclamation-circle text-xs"></i>
-                <span>{{ selectedContainerId }} ya está vinculado a {{ conflictingPlate }}. Desvincúlalo primero.</span>
+              <div v-if="isContainerAlreadyLinked" id="container-select-feedback" class="error-notice mt-2 text-xs flex align-items-center gap-1" role="alert">
+                <i class="pi pi-exclamation-circle text-xs" aria-hidden="true"></i>
+                <span>{{ t('telemetry.wizard.already-linked', { id: targetContainer?.displayCode || selectedContainerId, plate: conflictingPlate }) }}</span>
               </div>
-              <div v-else class="success-notice mt-2 text-xs flex align-items-center gap-1">
-                <i class="pi pi-check-circle text-xs text-teal"></i>
-                <span class="text-teal font-semibold">Listo para vincular a {{ selectedAmbulance?.plate }}</span>
+              <div v-else id="container-select-feedback" class="success-notice mt-2 text-xs flex align-items-center gap-1" role="status">
+                <i class="pi pi-check-circle text-xs text-teal" aria-hidden="true"></i>
+                <span class="text-teal font-semibold">{{ t('telemetry.wizard.ready', { plate: selectedAmbulance?.plate }) }}</span>
               </div>
             </div>
           </div>
         </div>
 
-        <!-- Info Notice Banner -->
         <div class="info-banner p-3 border-round-2xl flex align-items-center gap-3">
-          <div class="info-icon-circle flex align-items-center justify-content-center border-round-circle">
+          <div class="info-icon-circle flex align-items-center justify-content-center border-round-circle" aria-hidden="true">
             <i class="pi pi-link text-white text-sm"></i>
           </div>
           <div>
-            <h4 class="text-xs font-bold text-main m-0">Un contenedor por ambulancia</h4>
-            <p class="text-xs text-muted m-0 mt-1">Cada placa admite un solo contenedor a la vez.</p>
+            <h4 class="text-xs font-bold text-main m-0">{{ t('telemetry.wizard.rule-title') }}</h4>
+            <p class="text-xs text-muted m-0 mt-1">{{ t('telemetry.wizard.rule-detail') }}</p>
           </div>
         </div>
       </div>
 
-      <!-- ================= STEP 3: Confirmación y Activación 12V (MBA-35) ================= -->
+      <!-- ================= STEP 3: Confirmation and 12 V activation (MBA-35) ================= -->
       <div v-if="currentStep === 3" class="step-3-content flex flex-column gap-3">
         <div class="grid m-0 gap-3">
-          <!-- Left: Summary -->
           <div class="col-12 md:col-5 p-0">
             <div class="panel-card p-4 border-round-2xl h-full flex flex-column justify-content-between gap-3">
-              <h3 class="text-sm font-bold text-main m-0">Resumen</h3>
-              <div class="flex flex-column gap-3">
+              <h3 class="text-sm font-bold text-main m-0">{{ t('telemetry.wizard.summary') }}</h3>
+              <dl class="flex flex-column gap-3 m-0">
                 <div class="flex justify-content-between align-items-center">
                   <div>
-                    <span class="text-2xs text-muted block">Ambulancia</span>
-                    <strong class="text-sm text-main">{{ selectedAmbulance?.plate }}</strong>
+                    <dt class="text-2xs text-muted block">{{ t('telemetry.wizard.ambulance') }}</dt>
+                    <dd class="text-sm text-main font-bold m-0">{{ selectedAmbulance?.plate }}</dd>
                   </div>
                   <span class="badge-neutral text-xs px-2 py-1 border-round-pill">
                     • {{ selectedAmbulance?.model }}
@@ -269,31 +269,34 @@ async function handleCompleteLink() {
                 </div>
                 <div class="flex justify-content-between align-items-center">
                   <div>
-                    <span class="text-2xs text-muted block">SmartBox</span>
-                    <strong class="text-sm text-main">{{ selectedContainerId }}</strong>
+                    <dt class="text-2xs text-muted block">{{ t('telemetry.name') }}</dt>
+                    <dd class="text-sm text-main font-bold m-0">{{ targetContainer?.displayCode || selectedContainerId }}</dd>
                   </div>
                   <span class="badge-chosen text-xs px-2 py-1 border-round-pill">
-                    • Disponible
+                    • {{ t('telemetry.wizard.available') }}
                   </span>
                 </div>
-              </div>
+              </dl>
             </div>
           </div>
 
-          <!-- Right: Telemetry 12V Activation Simulation -->
           <div class="col-12 md:col p-0">
             <div class="panel-card p-4 border-round-2xl h-full flex flex-column align-items-center justify-content-center text-center">
-              <div class="spinner-circle mb-3 flex align-items-center justify-content-center">
+              <div class="spinner-circle mb-3 flex align-items-center justify-content-center" aria-hidden="true">
                 <i class="pi pi-spin pi-spinner text-teal text-3xl"></i>
               </div>
-              <h3 class="text-base font-bold text-main m-0">Activando telemetría de 12 V...</h3>
-              <div class="progress-bar-track mt-3 w-full border-round-pill">
-                <div
-                  class="progress-bar-fill border-round-pill"
-                  :style="{ width: `${activationProgress}%` }"
-                ></div>
+              <h3 class="text-base font-bold text-main m-0">{{ t('telemetry.wizard.activating') }}</h3>
+              <div
+                class="progress-bar-track mt-3 w-full border-round-pill"
+                role="progressbar"
+                :aria-label="t('telemetry.wizard.activating')"
+                aria-valuemin="0"
+                aria-valuemax="100"
+                :aria-valuenow="activationProgress"
+              >
+                <div class="progress-bar-fill border-round-pill" :style="{ width: `${activationProgress}%` }"></div>
               </div>
-              <p class="text-xs text-muted mt-2 mb-0">Esperando la primera lectura del contenedor</p>
+              <p class="text-xs text-muted mt-2 mb-0">{{ t('telemetry.wizard.waiting-reading') }}</p>
             </div>
           </div>
         </div>
@@ -306,7 +309,7 @@ async function handleCompleteLink() {
         <div>
           <pv-button
             v-if="currentStep > 1"
-            label="Atrás"
+            :label="t('telemetry.action.back')"
             icon="pi pi-chevron-left"
             class="btn-back px-3 py-2 text-xs border-round-pill"
             text
@@ -315,10 +318,9 @@ async function handleCompleteLink() {
         </div>
 
         <div class="flex align-items-center gap-2">
-          <!-- Step 1 Next -->
           <pv-button
             v-if="currentStep === 1"
-            label="Continuar"
+            :label="t('telemetry.action.continue')"
             icon="pi pi-arrow-right"
             icon-pos="right"
             class="btn-primary px-4 py-2 text-xs border-round-pill font-bold"
@@ -326,17 +328,17 @@ async function handleCompleteLink() {
             @click="goToStep(2)"
           />
 
-          <!-- Step 2 Next or Conflict -->
           <template v-else-if="currentStep === 2">
             <pv-button
               v-if="isContainerAlreadyLinked"
-              label="Usar otro SmartBox"
+              :label="t('telemetry.wizard.use-other')"
               class="btn-primary px-4 py-2 text-xs border-round-pill font-bold"
-              @click="selectedContainerId = 'SB-0165'"
+              :disabled="!firstUnlinkedContainerId"
+              @click="selectedContainerId = firstUnlinkedContainerId"
             />
             <pv-button
               v-else
-              label="Continuar"
+              :label="t('telemetry.action.continue')"
               icon="pi pi-arrow-right"
               icon-pos="right"
               class="btn-primary px-4 py-2 text-xs border-round-pill font-bold"
@@ -345,10 +347,9 @@ async function handleCompleteLink() {
             />
           </template>
 
-          <!-- Step 3 Activate -->
           <pv-button
             v-else-if="currentStep === 3"
-            label="Activar telemetría"
+            :label="t('telemetry.wizard.activate')"
             icon="pi pi-check"
             class="btn-primary px-4 py-2 text-xs border-round-pill font-bold"
             :loading="isActivating"

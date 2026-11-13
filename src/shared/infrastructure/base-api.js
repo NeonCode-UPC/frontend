@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000/api/v1';
+const apiUrl = import.meta.env?.VITE_API_URL || 'http://localhost:3000/api/v1';
 
 /**
  * Shared infrastructure base class configuring the Axios HTTP client.
@@ -17,9 +17,9 @@ export class BaseApi {
     /**
      * Initializes the Axios HTTP client with baseURL and standard headers.
      */
-    constructor() {
+    constructor(baseURL = apiUrl) {
         this.#http = axios.create({
-            baseURL: apiUrl,
+            baseURL,
             headers: {
                 'Content-Type': 'application/json'
             }
