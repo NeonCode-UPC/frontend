@@ -29,9 +29,11 @@ export class TransportOrderAssembler {
             return [];
         }
 
-        const resources = response.data instanceof Array
+        const resources = Array.isArray(response.data)
             ? response.data
-            : response.data['transportOrders'];
+            : (Array.isArray(response.data?.value)
+                ? response.data.value
+                : (response.data?.transportOrders || []));
 
         return resources.map(resource =>
             this.toEntityFromResource(new TransportOrderResource(resource))
