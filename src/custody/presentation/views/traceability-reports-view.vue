@@ -15,6 +15,7 @@ const isGenerating = ref(false);
 const reportData = ref(null);
 const viewError = ref('');
 const filter = ref('all');
+const reportsBasePath = computed(() => route.path.startsWith('/custody/reports') ? '/custody/reports' : '/reports');
 const isRequest = computed(() => route.query.new === '1');
 const selectedTransfer = computed(() => store.findTransfer(String(route.query.transfer || '')));
 const closedTransfers = computed(() => store.transfers.filter((transfer) => ['closed', 'exception'].includes(transfer.status)));
@@ -55,10 +56,10 @@ function openRequest() {
   reportData.value = null;
   viewError.value = '';
   selectedTransferId.value = closedTransfers.value[0]?.id || '';
-  router.push({ path: '/custody/reports', query: { new: '1' } });
+  router.push({ path: reportsBasePath.value, query: { new: '1' } });
 }
-function openReport(id) { router.push({ path: '/custody/reports', query: { transfer: id } }); }
-function cancelRequest() { router.push('/custody/reports'); }
+function openReport(id) { router.push({ path: reportsBasePath.value, query: { transfer: id } }); }
+function cancelRequest() { router.push(reportsBasePath.value); }
 async function generateReport() {
   if (!selectedTransferId.value) return;
   isGenerating.value = true;
@@ -66,7 +67,7 @@ async function generateReport() {
   await new Promise((resolve) => window.setTimeout(resolve, 700));
   try {
     reportData.value = await store.loadTraceabilityReport(selectedTransferId.value);
-    router.replace({ path: '/custody/reports', query: { transfer: selectedTransferId.value } });
+    router.replace({ path: reportsBasePath.value, query: { transfer: selectedTransferId.value } });
   } catch (error) {
     viewError.value = error.message;
   } finally { isGenerating.value = false; }
@@ -93,8 +94,8 @@ function routeToCustody() { router.push('/custody'); }
     :fluid="true"
   >
     <template #actions>
-      <div v-if="!isRequest && !route.query.transfer" class="report-header-actions"><button class="report-secondary report-back" @click="routeToCustody"><i class="pi pi-arrow-left"></i> Custodia</button><button class="report-primary" @click="openRequest"><i class="pi pi-plus"></i> Nuevo reporte</button></div>
-      <div v-else-if="route.query.transfer && reportData" class="report-header-actions"><button class="report-secondary report-back" @click="router.push('/custody/reports')">Reportes</button><button class="report-primary" @click="downloadPdf()"><i class="pi pi-download"></i> Exportar PDF</button></div>
+      <div v-if="!isRequest && !route.query.transfer" class="report-header-actions"><button v-if="route.path.startsWith('/custody')" class="report-secondary report-back" @click="routeToCustody"><i class="pi pi-arrow-left"></i> Custodia</button><button class="report-primary" @click="openRequest"><i class="pi pi-plus"></i> Nuevo reporte</button></div>
+      <div v-else-if="route.query.transfer && reportData" class="report-header-actions"><button class="report-secondary report-back" @click="router.push(reportsBasePath.value)">Reportes</button><button class="report-primary" @click="downloadPdf()"><i class="pi pi-download"></i> Exportar PDF</button></div>
       <div v-else class="report-header-actions"><button class="report-secondary" @click="cancelRequest">Cancelar</button><button class="report-primary" :disabled="!selectedTransferId || isGenerating" @click="generateReport"><i class="pi pi-chart-line"></i> Generar reporte</button></div>
     </template>
 
