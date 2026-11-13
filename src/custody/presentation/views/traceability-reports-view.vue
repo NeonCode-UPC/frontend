@@ -95,7 +95,7 @@ function routeToCustody() { router.push('/custody'); }
   >
     <template #actions>
       <div v-if="!isRequest && !route.query.transfer" class="report-header-actions"><button v-if="route.path.startsWith('/custody')" class="report-secondary report-back" @click="routeToCustody"><i class="pi pi-arrow-left"></i> Custodia</button><button class="report-primary" @click="openRequest"><i class="pi pi-plus"></i> Nuevo reporte</button></div>
-      <div v-else-if="route.query.transfer && reportData" class="report-header-actions"><button class="report-secondary report-back" @click="router.push(reportsBasePath.value)">Reportes</button><button class="report-primary" @click="downloadPdf()"><i class="pi pi-download"></i> Exportar PDF</button></div>
+      <div v-else-if="route.query.transfer && reportData" class="report-header-actions"><button class="report-secondary report-back" @click="router.push(reportsBasePath)">Reportes</button><button class="report-primary" @click="downloadPdf()"><i class="pi pi-download"></i> Exportar PDF</button></div>
       <div v-else class="report-header-actions"><button class="report-secondary" @click="cancelRequest">Cancelar</button><button class="report-primary" :disabled="!selectedTransferId || isGenerating" @click="generateReport"><i class="pi pi-chart-line"></i> Generar reporte</button></div>
     </template>
 

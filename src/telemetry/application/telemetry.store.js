@@ -13,6 +13,75 @@ import { TelemetryLog } from "../domain/telemetry-log.entity.js";
 
 const telemetryApi = new TelemetryApi();
 
+const defaultContainers = [
+    {
+        id: 1,
+        serialNumber: 'SB-0182',
+        formFactor: 'StandardBox_20L',
+        containerStatus: 'InTransit',
+        lockState: 'Locked',
+        currentTemperatureCelsius: 4.2,
+        tareWeightGrams: 10000,
+        netWeightGrams: 3200,
+        batteryPercentage: 92,
+        is12vConnected: true,
+        ambulancePlate: 'AMB-004',
+        currentTransferId: 'TR-2026-0001',
+        model: 'Standard Medical SmartBox 20L',
+        targetMinTemperature: 2.0,
+        targetMaxTemperature: 8.0,
+        warningTemperature: 7.5,
+        batteryWarningPercentage: 20,
+        signalQuality: 'strong',
+        location: 'Av. Javier Prado Este 1066',
+        status: 'online'
+    },
+    {
+        id: 2,
+        serialNumber: 'SB-8801',
+        formFactor: 'StandardBox_20L',
+        containerStatus: 'Available',
+        lockState: 'Locked',
+        currentTemperatureCelsius: 4.6,
+        tareWeightGrams: 10000,
+        netWeightGrams: 2800,
+        batteryPercentage: 88,
+        is12vConnected: false,
+        ambulancePlate: 'AMB-001',
+        currentTransferId: 'TR-2026-8801',
+        model: 'Standard Medical SmartBox 20L',
+        targetMinTemperature: 2.0,
+        targetMaxTemperature: 8.0,
+        warningTemperature: 7.5,
+        batteryWarningPercentage: 20,
+        signalQuality: 'strong',
+        location: 'Hospital Rebagliati',
+        status: 'online'
+    },
+    {
+        id: 3,
+        serialNumber: 'SB-9901',
+        formFactor: 'SmallBox_5L',
+        containerStatus: 'InTransit',
+        lockState: 'Locked',
+        currentTemperatureCelsius: 4.6,
+        tareWeightGrams: 5000,
+        netWeightGrams: 1200,
+        batteryPercentage: 74,
+        is12vConnected: true,
+        ambulancePlate: 'AMB-002',
+        currentTransferId: 'TR-2026-7701',
+        model: 'Small Medical SmartBox 5L',
+        targetMinTemperature: 2.0,
+        targetMaxTemperature: 8.0,
+        warningTemperature: 7.5,
+        batteryWarningPercentage: 20,
+        signalQuality: 'medium',
+        location: 'Hospital Almenara',
+        status: 'online'
+    }
+];
+
 /**
  * Pinia store managing state and use cases for the Smart Container & Telemetry Monitoring bounded context.
  * Connects directly to the ASP.NET Core backend REST API while retaining graceful fallback compatibility.
@@ -20,8 +89,9 @@ const telemetryApi = new TelemetryApi();
  * @module useTelemetryStore
  */
 export const useTelemetryStore = defineStore('telemetry', () => {
-    const containers = ref([]);
-    const selectedContainer = ref(null);
+    const initialEntities = SmartContainerAssembler.toEntitiesFromResponse({ status: 200, data: defaultContainers });
+    const containers = ref(initialEntities);
+    const selectedContainer = ref(initialEntities[0] || null);
     const telemetryLogs = ref([]);
     const loading = ref(false);
     const errors = ref([]);
@@ -86,7 +156,10 @@ export const useTelemetryStore = defineStore('telemetry', () => {
         loading.value = true;
         try {
             const response = await telemetryApi.getContainers();
-            containers.value = SmartContainerAssembler.toEntitiesFromResponse(response);
+            const entities = SmartContainerAssembler.toEntitiesFromResponse(response);
+            if (entities && entities.length > 0) {
+                containers.value = entities;
+            }
             errors.value = [];
 
             // Default to the first linked container if none is selected yet
