@@ -9,6 +9,7 @@ import { RecordWeightWithdrawalCommand } from '../../domain/record-weight-withdr
 import { useTelemetryFormat } from '../composables/use-telemetry-format.js';
 import ContainerCard from '../components/container-card.vue';
 import ContainerDetailPanel from '../components/container-detail-panel.vue';
+import CreateContainerModal from '../components/create-container-modal.vue';
 import StockWeightModal from '../components/stock-weight-modal.vue';
 import LinkContainerWizard from '../components/link-container-wizard.vue';
 
@@ -35,6 +36,7 @@ const displayFormat = ref('table');
 const activeFilter = ref('all');
 
 // Modals state
+const isCreateModalVisible = ref(false);
 const isLinkWizardVisible = ref(false);
 const isWeightModalVisible = ref(false);
 const targetWeightContainer = ref(null);
@@ -159,6 +161,17 @@ function handleContainerLinked(payload) {
   telemetryStore.fetchContainers();
 }
 
+function handleContainerCreated(created) {
+  const displayId = created?.displayCode || created?.serialNumber || created?.id || '';
+  activeFilter.value = 'all';
+  toast.add({
+    severity: 'success',
+    summary: t('telemetry.toast.created-summary'),
+    detail: t('telemetry.toast.created-detail', { id: displayId }),
+    life: 4000
+  });
+}
+
 const stateBadgeClass = {
   offline: 'state-offline',
   critical: 'state-critical',
@@ -181,8 +194,14 @@ const stateBadgeClass = {
           </p>
         </div>
 
-        <!-- Action Button: Link container (MBA-29) -->
-        <div class="header-action">
+        <!-- Action Buttons: Register & Link container (US28, MBA-29) -->
+        <div class="header-action flex flex-wrap align-items-center gap-2">
+          <pv-button
+            :label="t('telemetry.catalog.create-action')"
+            icon="pi pi-plus"
+            class="btn-create-container px-4 py-2 text-xs border-round-pill font-bold shadow-1"
+            @click="isCreateModalVisible = true"
+          />
           <pv-button
             :label="t('telemetry.catalog.link-action')"
             icon="pi pi-link"
@@ -221,8 +240,23 @@ const stateBadgeClass = {
         role="status"
       >
         <i class="pi pi-info-circle text-2xl text-muted mb-2" aria-hidden="true"></i>
-        <p class="text-sm font-semibold text-main m-0">{{ t('telemetry.catalog.empty') }}</p>
-        <pv-button :label="t('telemetry.catalog.reset-filters')" text class="mt-2 text-xs" @click="activeFilter = 'all'" />
+        <p class="text-sm font-semibold text-main m-0">
+          {{ totalCount === 0 ? t('telemetry.catalog.empty-catalog') : t('telemetry.catalog.empty') }}
+        </p>
+        <pv-button
+          v-if="totalCount === 0"
+          :label="t('telemetry.catalog.create-action')"
+          icon="pi pi-plus"
+          class="btn-create-container mt-3 px-4 py-2 text-xs border-round-pill font-bold"
+          @click="isCreateModalVisible = true"
+        />
+        <pv-button
+          v-else
+          :label="t('telemetry.catalog.reset-filters')"
+          text
+          class="mt-2 text-xs"
+          @click="activeFilter = 'all'"
+        />
       </div>
 
       <!-- ================= OPTION A: TABLE VIEW (EXACT MBA-29) ================= -->
@@ -314,6 +348,12 @@ const stateBadgeClass = {
 
     <!-- ================= MODALS & WIZARDS ================= -->
 
+    <!-- Modal 0: Create SmartBox Modal (US28) -->
+    <create-container-modal
+      v-model:visible="isCreateModalVisible"
+      @created="handleContainerCreated"
+    />
+
     <!-- Modal 1: Link Container Wizard (MBA-33, 34, 35) -->
     <link-container-wizard
       v-model:visible="isLinkWizardVisible"
@@ -345,6 +385,20 @@ const stateBadgeClass = {
 
 .text-teal {
   color: #0F7A70;
+}
+
+.btn-create-container {
+  background-color: #FFFFFF !important;
+  border: 1.5px solid #0F7A70 !important;
+  color: #0F7A70 !important;
+  box-shadow: 0 2px 8px rgba(15, 122, 112, 0.12);
+  transition: all 0.2s ease;
+}
+
+.btn-create-container:hover {
+  background-color: #ECFDF5 !important;
+  border-color: #0B5C55 !important;
+  color: #0B5C55 !important;
 }
 
 .btn-link-container {

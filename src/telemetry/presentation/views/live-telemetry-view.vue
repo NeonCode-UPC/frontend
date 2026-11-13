@@ -182,8 +182,22 @@ function handleRetryConnection() {
       </div>
     </div>
 
-    <div v-if="!currentContainer" class="screen-card border-round-xl p-4 text-xs text-muted" role="status" aria-live="polite">
-      {{ store.loading ? t('telemetry.catalog.loading') : t('telemetry.catalog.empty') }}
+    <div
+      v-if="!currentContainer"
+      class="screen-card border-round-xl p-4 flex flex-column sm:flex-row sm:align-items-center justify-content-between gap-3 text-xs text-muted"
+      role="status"
+      aria-live="polite"
+    >
+      <span>
+        {{ store.loading ? t('telemetry.catalog.loading') : (store.containers.length === 0 ? t('telemetry.catalog.empty-catalog') : t('telemetry.catalog.empty')) }}
+      </span>
+      <pv-button
+        v-if="!store.loading && store.containers.length === 0"
+        :label="t('telemetry.live.go-to-catalog')"
+        icon="pi pi-plus"
+        class="p-button-sm border-round-pill text-xs font-semibold align-self-start sm:align-self-auto"
+        @click="router.push('/telemetry')"
+      />
     </div>
 
     <div v-else class="view-content-canvas">
