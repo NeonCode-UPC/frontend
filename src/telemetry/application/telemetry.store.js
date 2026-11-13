@@ -5,6 +5,7 @@ import { SmartContainerAssembler } from "../infrastructure/smart-container.assem
 import { TelemetryLogAssembler } from "../infrastructure/telemetry-log.assembler.js";
 import { TelemetryLog } from "../domain/telemetry-log.entity.js";
 
+/** @typedef {import('../domain/create-smart-container.command.js').CreateSmartContainerCommand} CreateSmartContainerCommand */
 /** @typedef {import('../domain/link-container.command.js').LinkContainerCommand} LinkContainerCommand */
 /** @typedef {import('../domain/unlink-container.command.js').UnlinkContainerCommand} UnlinkContainerCommand */
 /** @typedef {import('../domain/record-weight-withdrawal.command.js').RecordWeightWithdrawalCommand} RecordWeightWithdrawalCommand */
@@ -202,6 +203,40 @@ export const useTelemetryStore = defineStore('telemetry', () => {
             units: command.units,
             responsible: command.responsible
         };
+    }
+
+    /**
+     * Registers a new SmartContainer in the fleet inventory (US28 / POST /api/v1/smart-containers).
+     * @param {CreateSmartContainerCommand} command
+     * @returns {Promise<import('../domain/smart-container.entity.js').SmartContainer>}
+     */
+    async function createContainer(command) {
+        loading.value = true;
+        try {
+            const response = await telemetryApi.createContainer({
+                serialNumber: command.serialNumber,
+                formFactor: command.formFactor,
+                tareWeightGrams: command.tareWeightGrams,
+                initialTemperature: command.initialTemperature,
+                minTemperatureCelsius: command.thresholds.minCelsius,
+                maxTemperatureCelsius: command.thresholds.maxCelsius,
+                warningTemperatureCelsius: command.thresholds.warningCelsius,
+                excursionToleranceSeconds: command.thresholds.excursionToleranceSeconds
+            });
+            const created = SmartContainerAssembler.toEntityFromResource(response.data);
+            updateLocalContainer(created);
+            if (!selectedContainer.value) {
+                selectedContainer.value = created;
+            }
+            errors.value = [];
+            return created;
+        } catch (error) {
+            console.error(`Error creating container ${command.serialNumber}:`, error);
+            errors.value.push(error);
+            throw error;
+        } finally {
+            loading.value = false;
+        }
     }
 
     /**
@@ -414,6 +449,7 @@ export const useTelemetryStore = defineStore('telemetry', () => {
         fetchContainers,
         fetchContainerById,
         fetchTelemetryLogs,
+        createContainer,
         linkContainer,
         unlinkContainer,
         recordWeightMovement,
