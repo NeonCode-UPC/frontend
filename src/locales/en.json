@@ -78,6 +78,7 @@
       "search-placeholder": "Filter by route, state or SmartBox",
       "summary": "{total} containers · {offline} offline",
       "link-action": "Link container",
+      "create-action": "Add SmartBox",
       "filter-label": "Filter containers by connection",
       "filter": {
         "all": "All ({count})",
@@ -90,6 +91,7 @@
       "view-grid": "Card view",
       "loading": "Syncing IoT containers with the control center...",
       "empty": "No SmartBoxes match this filter.",
+      "empty-catalog": "There are no SmartBoxes registered in the database yet.",
       "reset-filters": "Reset filters",
       "table-label": "SmartBox containers"
     },
@@ -224,7 +226,8 @@
       "stop-simulation": "Stop simulation",
       "in-transit": "In transit",
       "signal": "Signal: {value}",
-      "last-reading": "Last reading"
+      "last-reading": "Last reading",
+      "go-to-catalog": "Go to SmartBoxes to register one"
     },
     "excursion": {
       "title": "Thermal excursion",
@@ -297,7 +300,37 @@
       "acknowledged-summary": "Alert acknowledged",
       "acknowledged-detail": "Contingency protocol activated.",
       "retry-summary": "Polling the IoT gateway...",
-      "retry-detail": "Requesting a new reading from {id}."
+      "retry-detail": "Requesting a new reading from {id}.",
+      "created-summary": "SmartBox registered",
+      "created-detail": "Container {id} was added to the system inventory."
+    },
+    "create": {
+      "breadcrumb": "TELEMETRY · INVENTORY REGISTRATION",
+      "title": "Register new SmartBox",
+      "subtitle": "Register a medical container in the database to enable telemetry, weighing, and transfers.",
+      "serial-label": "Serial number *",
+      "serial-placeholder": "E.g.: SB-2026-001",
+      "serial-hint": "Unique hardware identifier (up to 30 characters).",
+      "model-label": "Hardware form factor *",
+      "model-20l": "StandardBox 20L (standard)",
+      "model-5l": "SmallBox 5L (compact)",
+      "tare-label": "Tare weight *",
+      "initial-temp-label": "Initial temperature *",
+      "thresholds-title": "Initial thermal thresholds",
+      "min-short": "Minimum",
+      "max-short": "Maximum",
+      "warning-short": "Warning",
+      "tolerance-short": "Tolerance",
+      "submit": "Register SmartBox",
+      "errors": {
+        "serial-required": "Enter the SmartBox serial number.",
+        "serial-too-long": "Serial number must not exceed {max} characters.",
+        "duplicate-serial": "A SmartBox with serial {serial} is already registered.",
+        "tare-invalid": "Enter a valid tare weight of 0 kg or greater.",
+        "temp-invalid": "Enter a valid initial temperature.",
+        "tolerance-invalid": "Tolerance must be greater than 0 seconds.",
+        "submit-failed": "Could not register the SmartBox in the API. Check your connection and try again."
+      }
     }
   },
   "iam": {

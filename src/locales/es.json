@@ -78,6 +78,7 @@
       "search-placeholder": "Filtrar por ruta, estado o SmartBox",
       "summary": "{total} contenedores · {offline} sin conexión",
       "link-action": "Vincular contenedor",
+      "create-action": "Agregar SmartBox",
       "filter-label": "Filtrar contenedores por conexión",
       "filter": {
         "all": "Todos ({count})",
@@ -90,6 +91,7 @@
       "view-grid": "Vista de tarjetas",
       "loading": "Sincronizando contenedores IoT con el centro de control...",
       "empty": "No se encontraron SmartBoxes para este filtro.",
+      "empty-catalog": "Aún no hay SmartBoxes registrados en la base de datos.",
       "reset-filters": "Restablecer filtros",
       "table-label": "Contenedores SmartBox"
     },
@@ -224,7 +226,8 @@
       "stop-simulation": "Detener simulación",
       "in-transit": "En tránsito",
       "signal": "Señal: {value}",
-      "last-reading": "Última lectura"
+      "last-reading": "Última lectura",
+      "go-to-catalog": "Ir a SmartBoxes para registrar uno"
     },
     "excursion": {
       "title": "Excursión térmica",
@@ -297,7 +300,37 @@
       "acknowledged-summary": "Alerta reconocida",
       "acknowledged-detail": "Protocolo de contingencia activado.",
       "retry-summary": "Sondeando el gateway IoT...",
-      "retry-detail": "Solicitando una nueva lectura a {id}."
+      "retry-detail": "Solicitando una nueva lectura a {id}.",
+      "created-summary": "SmartBox registrado",
+      "created-detail": "El contenedor {id} se agregó al inventario del sistema."
+    },
+    "create": {
+      "breadcrumb": "TELEMETRÍA · ALTA DE INVENTARIO",
+      "title": "Registrar nuevo SmartBox",
+      "subtitle": "Da de alta un contenedor médico en la base de datos para habilitar telemetría, pesaje y traslados.",
+      "serial-label": "Número de serie *",
+      "serial-placeholder": "Ej.: SB-2026-001",
+      "serial-hint": "Identificador único de hardware (máximo 30 caracteres).",
+      "model-label": "Modelo físico *",
+      "model-20l": "StandardBox 20L (estándar)",
+      "model-5l": "SmallBox 5L (compacto)",
+      "tare-label": "Peso tara *",
+      "initial-temp-label": "Temperatura inicial *",
+      "thresholds-title": "Umbrales térmicos iniciales",
+      "min-short": "Mínimo",
+      "max-short": "Máximo",
+      "warning-short": "Preventiva",
+      "tolerance-short": "Tolerancia",
+      "submit": "Registrar SmartBox",
+      "errors": {
+        "serial-required": "Ingresa el número de serie del SmartBox.",
+        "serial-too-long": "El número de serie no debe superar {max} caracteres.",
+        "duplicate-serial": "Ya existe un SmartBox registrado con el serial {serial}.",
+        "tare-invalid": "Ingresa un peso tara válido mayor o igual a 0 kg.",
+        "temp-invalid": "Ingresa una temperatura inicial válida.",
+        "tolerance-invalid": "La tolerancia debe ser mayor a 0 segundos.",
+        "submit-failed": "No se pudo registrar el SmartBox en la API. Verifica la conexión e inténtalo de nuevo."
+      }
     }
   },
   "iam": {
